@@ -1,0 +1,10 @@
+# Contraseñas y configuración local
+.env
+
+# Sistema operativo y editores
+.DS_Store
+*.swp
+
+# Python
+__pycache__/
+*.pyc

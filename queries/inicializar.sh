@@ -1,0 +1,100 @@
+#!/usr/bin/env bash
+# Inicializa la base Cafetear: tablas, datos de ejemplo y procedimientos almacenados.
+# Corre dentro de un contenedor con sqlcmd: lo usa el servicio "init" de docker compose
+# y también cargar_cafetear.sh.
+#
+# Opciones:
+#   --reset         borra y vuelve a crear las tablas con los datos de ejemplo
+#   --con-errores   suma los datos con errores (enunciados 27 y 28)
+#   --hoy           suma las calibraciones de hoy (enunciado 31)
+#
+# Variables de entorno:
+#   SA_PASSWORD     contraseña del usuario sa (obligatoria)
+#   SQL_HOST        servidor SQL (por defecto localhost)
+#   RESET_DB=1      equivale a --reset
+#   WITH_ERRORS=1   equivale a --con-errores
+#   WITH_TODAY=1    equivale a --hoy
+#
+# Sin --reset, si la base ya existe no se tocan los datos: solo se actualizan los procedimientos.
+
+set -euo pipefail
+
+SQLCMD="/opt/mssql-tools18/bin/sqlcmd"
+SQL_HOST="${SQL_HOST:-localhost}"
+SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+reset="${RESET_DB:-0}"
+with_errors="${WITH_ERRORS:-0}"
+with_today="${WITH_TODAY:-0}"
+
+parse_arguments() {
+  for arg in "$@"; do
+    case "$arg" in
+      --reset) reset=1 ;;
+      --con-errores) with_errors=1 ;;
+      --hoy) with_today=1 ;;
+      *) echo "Opción desconocida: $arg" >&2; exit 1 ;;
+    esac
+  done
+}
+
+run_sql() {
+  "$SQLCMD" -C -b -f 65001 -S "$SQL_HOST" -U sa -P "$SA_PASSWORD" "$@"
+}
+
+run_file() {
+  local file="$1" output
+  echo "→ ${file#"$SCRIPTS_DIR"/}"
+  output=$(run_sql -i "$file") || { echo "$output" >&2; exit 1; }
+}
+
+database_is_initialized() {
+  local answer
+  answer=$(run_sql -h -1 -W -Q "SET NOCOUNT ON; SELECT CASE WHEN OBJECT_ID('Cafetear.dbo.Calibracion', 'U') IS NOT NULL THEN 1 ELSE 0 END" | tr -d '[:space:]')
+  [ "$answer" = "1" ]
+}
+
+load_data() {
+  run_file "$SCRIPTS_DIR/01_crear_base_y_tablas.sql"
+  run_file "$SCRIPTS_DIR/02_datos_maestros.sql"
+  run_file "$SCRIPTS_DIR/03_calibraciones.sql"
+  run_file "$SCRIPTS_DIR/04_calificaciones.sql"
+  [ "$with_errors" = "1" ] && run_file "$SCRIPTS_DIR/05_datos_con_errores.sql"
+  [ "$with_today" = "1" ] && run_file "$SCRIPTS_DIR/06_calibraciones_de_hoy.sql"
+  return 0
+}
+
+load_procedures() {
+  local file
+  for file in "$SCRIPTS_DIR"/crud/*.sql; do
+    run_file "$file"
+  done
+}
+
+print_summary() {
+  run_sql -d Cafetear -Q "
+SET NOCOUNT ON;
+SELECT 'Proveedor' AS tabla, COUNT(*) AS filas FROM Proveedor
+UNION ALL SELECT 'Grano', COUNT(*) FROM Grano
+UNION ALL SELECT 'Lote', COUNT(*) FROM Lote
+UNION ALL SELECT 'Barista', COUNT(*) FROM Barista
+UNION ALL SELECT 'Cliente', COUNT(*) FROM Cliente
+UNION ALL SELECT 'Calibracion', COUNT(*) FROM Calibracion
+UNION ALL SELECT 'Calificacion', COUNT(*) FROM Calificacion;
+SELECT COUNT(*) AS procedimientos_crud FROM sys.procedures WHERE name LIKE 'usp[_]%';"
+}
+
+main() {
+  parse_arguments "$@"
+  if [ "$reset" = "1" ] || ! database_is_initialized; then
+    echo "Cargando tablas y datos de ejemplo..."
+    load_data
+  else
+    echo "La base Cafetear ya existe: no se tocan los datos (usá --reset para empezar de cero)."
+  fi
+  echo "Actualizando procedimientos almacenados..."
+  load_procedures
+  print_summary
+}
+
+main "$@"

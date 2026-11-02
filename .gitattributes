@@ -1,0 +1,11 @@
+# Finales de línea siempre LF: los scripts corren dentro de contenedores Linux.
+*.sh   text eol=lf
+*.sql  text eol=lf
+*.py   text eol=lf
+*.yml  text eol=lf
+*.md   text eol=lf
+.env.example text eol=lf
+
+# Archivos binarios
+*.pptx binary
+*.docx binary

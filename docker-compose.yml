@@ -1,0 +1,54 @@
+# Entorno de Cafetear: SQL Server 2022 con la base cargada y los procedimientos de CRUD.
+#
+#   docker compose up -d        levanta todo (la primera vez tarda 1 o 2 minutos)
+#   docker compose logs init    muestra cómo salió la carga de la base
+#   docker compose down         apaga todo y conserva los datos
+#   docker compose down -v      apaga todo y borra los datos
+#
+# Configuración opcional en un archivo .env (ver .env.example): SA_PASSWORD, DB_PORT.
+
+name: cafetear
+
+x-sqlserver-image: &sqlserver-image mcr.microsoft.com/mssql/server:2022-latest
+
+services:
+  db:
+    image: *sqlserver-image
+    platform: linux/amd64   # en Mac con chip Apple corre emulado
+    container_name: cafetear_sqlserver
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${SA_PASSWORD:-Cafetear_2026!}
+      MSSQL_PID: Express
+      TZ: America/Argentina/Buenos_Aires
+    ports:
+      - "${DB_PORT:-1433}:1433"
+    volumes:
+      - cafetear_data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -b -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -Q 'SELECT 1' > /dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  # Corre una vez al levantar: crea la base y los datos si no existen, y siempre actualiza los procedimientos.
+  init:
+    image: *sqlserver-image
+    platform: linux/amd64
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SA_PASSWORD: ${SA_PASSWORD:-Cafetear_2026!}
+      SQL_HOST: db
+      RESET_DB: ${RESET_DB:-0}
+      WITH_ERRORS: ${WITH_ERRORS:-0}
+      WITH_TODAY: ${WITH_TODAY:-0}
+    volumes:
+      - ./queries:/scripts:ro
+    entrypoint: ["/bin/bash", "/scripts/inicializar.sh"]
+    restart: "no"
+
+volumes:
+  cafetear_data:
