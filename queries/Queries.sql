@@ -55,7 +55,7 @@ SELECT
     COUNT(*) AS CatnidadCalificaciones
 FROM
     Grano g
-JOIN Lote l ON l.IDGrano = g.IDGrano --Cada lote pertenece a un grano
+JOIN Lote l ON l.IDGrano = g.IDGrano
 JOIN Calibracion c ON c.IDLote = l.IDLote --Cada calibración usa un lote
 JOIN Calificacion cf ON cf.IDCalibracion = c.IDCalibracion -- Cada calificacion evalua una calibracion
 
@@ -64,3 +64,43 @@ GROUP BY
     g.regionCosecha,
     DATEDIFF(DAY, l.fechaTostado, c.fechaCalibracion) / 7
 ORDER BY g.IDGrano, SemanasDesdeTostado;
+
+/*
+Mostrar para cada grano la calibración con mayor calificacion promedio
+*/
+
+SELECT
+    g.regionCosecha AS Grano,
+    c.IDCalibracion,
+    c.dosis,
+    c.tiempoExtraccion,
+    c.rendimiento,
+    AVG(cf.puntaje * 1.0) AS PuntajePromedio,
+    COUNT(*) AS CantidadCalificaciones
+FROM Grano g
+JOIN Lote l ON l.IDGrano = g.IDGrano
+JOIN Calibracion c ON c.IDLote = l.IDLote --Cada calibración usa un lote
+JOIN Calificacion cf ON cf.IDCalibracion = c.IDCalibracion -- Cada calificacion evalua una calibracion
+GROUP BY
+    g.IDGrano,
+    g.regionCosecha,
+    c.IDCalibracion,
+    c.dosis,
+    c.tiempoExtraccion,
+    c.rendimiento
+HAVING NOT EXISTS(
+    SELECT 1
+
+    FROM Lote         l2
+
+    JOIN Calibracion  c2  ON c2.IDLote         = l2.IDLote
+
+    JOIN Calificacion cf2 ON cf2.IDCalibracion = c2.IDCalibracion
+
+    WHERE l2.IDGrano = g.IDGrano                          -- mismo grano
+
+    GROUP BY c2.IDCalibracion
+
+    HAVING AVG(cf2.puntaje * 1.0) > AVG(cf.puntaje * 1.0) -- mejor promedio
+)
+ORDER BY g.regionCosecha;
