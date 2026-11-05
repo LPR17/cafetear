@@ -50,20 +50,24 @@ Mostrar Puntaje Promedio según las semanas transcurridas desde el tostado
 SELECT
     g.IDGrano,
     g.regionCosecha AS Grano,
+    p.razonSocial AS Proveedor,
     DATEDIFF(DAY, l.fechaTostado, c.fechaCalibracion) / 7 AS SemanasDesdeTostado,
     AVG(cf.puntaje * 1.0) AS PuntajePromedio,
-    COUNT(*) AS CatnidadCalificaciones
+    COUNT(*) AS CantidadCalificaciones
 FROM
     Grano g
 JOIN Lote l ON l.IDGrano = g.IDGrano
+JOIN Proveedor p ON p.IDProveedor = l.IDProveedor -- El mismo grano puede venir de distintos proveedores
 JOIN Calibracion c ON c.IDLote = l.IDLote --Cada calibración usa un lote
 JOIN Calificacion cf ON cf.IDCalibracion = c.IDCalibracion -- Cada calificacion evalua una calibracion
 
 GROUP BY 
     g.IDGrano,
     g.regionCosecha,
+    p.IDProveedor,
+    p.razonSocial,
     DATEDIFF(DAY, l.fechaTostado, c.fechaCalibracion) / 7
-ORDER BY g.IDGrano, SemanasDesdeTostado;
+ORDER BY g.IDGrano, p.razonSocial, SemanasDesdeTostado;
 
 /*
 Mostrar para cada grano la calibración con mayor calificacion promedio
