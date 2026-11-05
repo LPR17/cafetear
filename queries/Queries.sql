@@ -72,44 +72,29 @@ ORDER BY g.IDGrano, p.razonSocial, SemanasDesdeTostado;
 /*
 Mostrar para cada grano y proveedor la calibración con mayor calificación promedio.
 Se exigen al menos 3 calificaciones; si hay empate gana la que tiene más calificaciones y, si siguen empatadas, la más antigua.
+Usa la vista vw_PuntajePorCalibracion (queries/objetos/02_vistas.sql), que ya trae el promedio y la cantidad por calibración.
 */
 
 SELECT
     g.regionCosecha AS Grano,
     p.razonSocial AS Proveedor,
-    c.IDCalibracion,
-    c.dosis,
-    c.tiempoExtraccion,
-    c.rendimiento,
-    AVG(cf.puntaje * 1.0) AS PuntajePromedio,
-    COUNT(*) AS CantidadCalificaciones
-FROM Grano g
-JOIN Lote l ON l.IDGrano = g.IDGrano
+    v.IDCalibracion,
+    v.dosis,
+    v.tiempoExtraccion,
+    v.rendimiento,
+    v.puntajePromedio,
+    v.calificaciones
+FROM vw_PuntajePorCalibracion v
+JOIN Lote l ON l.IDLote = v.IDLote
+JOIN Grano g ON g.IDGrano = l.IDGrano
 JOIN Proveedor p ON p.IDProveedor = l.IDProveedor
-JOIN Calibracion c ON c.IDLote = l.IDLote
-JOIN Calificacion cf ON cf.IDCalibracion = c.IDCalibracion
-GROUP BY
-    g.IDGrano,
-    g.regionCosecha,
-    p.IDProveedor,
-    p.razonSocial,
-    c.IDCalibracion,
-    c.dosis,
-    c.tiempoExtraccion,
-    c.rendimiento
-HAVING COUNT(*) >= 3
-   AND NOT EXISTS (
-    SELECT 1
-    FROM Lote l2
-    JOIN Calibracion c2 ON c2.IDLote = l2.IDLote
-    JOIN Calificacion cf2 ON cf2.IDCalibracion = c2.IDCalibracion
-    WHERE l2.IDGrano = g.IDGrano
-      AND l2.IDProveedor = p.IDProveedor      -- mismo grano y mismo proveedor
-    GROUP BY c2.IDCalibracion
-    HAVING COUNT(*) >= 3
-       AND (AVG(cf2.puntaje * 1.0) > AVG(cf.puntaje * 1.0)                                  -- mejor promedio
-         OR (AVG(cf2.puntaje * 1.0) = AVG(cf.puntaje * 1.0) AND COUNT(*) > COUNT(cf.puntaje)) -- empate: más calificaciones
-         OR (AVG(cf2.puntaje * 1.0) = AVG(cf.puntaje * 1.0) AND COUNT(*) = COUNT(cf.puntaje)
-             AND c2.IDCalibracion < c.IDCalibracion))                                        -- empate total: la más antigua
+WHERE v.IDCalibracion = (
+    SELECT TOP 1 v2.IDCalibracion
+    FROM vw_PuntajePorCalibracion v2
+    JOIN Lote l2 ON l2.IDLote = v2.IDLote
+    WHERE l2.IDGrano = l.IDGrano
+      AND l2.IDProveedor = l.IDProveedor      -- mismo grano y mismo proveedor
+      AND v2.calificaciones >= 3
+    ORDER BY v2.puntajePromedio DESC, v2.calificaciones DESC, v2.IDCalibracion
 )
 ORDER BY g.regionCosecha, p.razonSocial;
