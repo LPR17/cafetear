@@ -70,11 +70,13 @@ GROUP BY
 ORDER BY g.IDGrano, p.razonSocial, SemanasDesdeTostado;
 
 /*
-Mostrar para cada grano la calibración con mayor calificacion promedio
+Mostrar para cada grano y proveedor la calibración con mayor calificación promedio.
+Se exigen al menos 3 calificaciones; si hay empate gana la que tiene más calificaciones y, si siguen empatadas, la más antigua.
 */
 
 SELECT
     g.regionCosecha AS Grano,
+    p.razonSocial AS Proveedor,
     c.IDCalibracion,
     c.dosis,
     c.tiempoExtraccion,
@@ -83,28 +85,31 @@ SELECT
     COUNT(*) AS CantidadCalificaciones
 FROM Grano g
 JOIN Lote l ON l.IDGrano = g.IDGrano
-JOIN Calibracion c ON c.IDLote = l.IDLote --Cada calibración usa un lote
-JOIN Calificacion cf ON cf.IDCalibracion = c.IDCalibracion -- Cada calificacion evalua una calibracion
+JOIN Proveedor p ON p.IDProveedor = l.IDProveedor
+JOIN Calibracion c ON c.IDLote = l.IDLote
+JOIN Calificacion cf ON cf.IDCalibracion = c.IDCalibracion
 GROUP BY
     g.IDGrano,
     g.regionCosecha,
+    p.IDProveedor,
+    p.razonSocial,
     c.IDCalibracion,
     c.dosis,
     c.tiempoExtraccion,
     c.rendimiento
-HAVING NOT EXISTS(
+HAVING COUNT(*) >= 3
+   AND NOT EXISTS (
     SELECT 1
-
-    FROM Lote         l2
-
-    JOIN Calibracion  c2  ON c2.IDLote         = l2.IDLote
-
+    FROM Lote l2
+    JOIN Calibracion c2 ON c2.IDLote = l2.IDLote
     JOIN Calificacion cf2 ON cf2.IDCalibracion = c2.IDCalibracion
-
-    WHERE l2.IDGrano = g.IDGrano                          -- mismo grano
-
+    WHERE l2.IDGrano = g.IDGrano
+      AND l2.IDProveedor = p.IDProveedor      -- mismo grano y mismo proveedor
     GROUP BY c2.IDCalibracion
-
-    HAVING AVG(cf2.puntaje * 1.0) > AVG(cf.puntaje * 1.0) -- mejor promedio
+    HAVING COUNT(*) >= 3
+       AND (AVG(cf2.puntaje * 1.0) > AVG(cf.puntaje * 1.0)                                  -- mejor promedio
+         OR (AVG(cf2.puntaje * 1.0) = AVG(cf.puntaje * 1.0) AND COUNT(*) > COUNT(cf.puntaje)) -- empate: más calificaciones
+         OR (AVG(cf2.puntaje * 1.0) = AVG(cf.puntaje * 1.0) AND COUNT(*) = COUNT(cf.puntaje)
+             AND c2.IDCalibracion < c.IDCalibracion))                                        -- empate total: la más antigua
 )
-ORDER BY g.regionCosecha;
+ORDER BY g.regionCosecha, p.razonSocial;
