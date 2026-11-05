@@ -43,4 +43,24 @@ FROM
 GROUP BY MONTH(fecha), YEAR(fecha)
 ORDER BY MONTH(fecha), YEAR(fecha)
 
+/*
+Mostrar Puntaje Promedio según las semanas transcurridas desde el tostado
+*/
 
+SELECT
+    g.IDGrano,
+    g.regionCosecha AS Grano,
+    DATEDIFF(DAY, l.fechaTostado, c.fechaCalibracion) / 7 AS SemanasDesdeTostado,
+    AVG(cf.puntaje * 1.0) AS PuntajePromedio,
+    COUNT(*) AS CatnidadCalificaciones
+FROM
+    Grano g
+JOIN Lote l ON l.IDGrano = g.IDGrano --Cada lote pertenece a un grano
+JOIN Calibracion c ON c.IDLote = l.IDLote --Cada calibración usa un lote
+JOIN Calificacion cf ON cf.IDCalibracion = c.IDCalibracion -- Cada calificacion evalua una calibracion
+
+GROUP BY 
+    g.IDGrano,
+    g.regionCosecha,
+    DATEDIFF(DAY, l.fechaTostado, c.fechaCalibracion) / 7
+ORDER BY g.IDGrano, SemanasDesdeTostado;
