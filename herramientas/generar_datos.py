@@ -52,6 +52,10 @@ PROVEEDORES = [
     ("33-70655120-9", "Origen Colombia Import S.A."),
     ("30-71877650-2", "Brasil Café Trading S.R.L."),
     ("30-71562918-5", "Sidamo Importaciones S.R.L."),
+    ("30-71099321-6", "Cafés del Valle S.A."),
+    ("30-70744810-3", "Importadora Tierra Alta S.R.L."),
+    ("33-71320485-9", "Granos del Mundo S.A."),
+    ("30-71688104-2", "Selecta Cafés S.R.L."),
 ]
 
 # id, altura, region, fechaCosecha, ajuste de sabor
@@ -64,7 +68,10 @@ GRANOS = [
     (6, 2100, "Nariño, Colombia", date(2025, 1, 30), 0.10),
     (7, 1900, "Sidamo, Etiopía", date(2025, 2, 18), 0.15),
     (8, 1700, "Tarrazú, Costa Rica", date(2025, 3, 2), 0.20),
+    (9, 1950, "Huila, Colombia", date(2025, 6, 18), 0.20),
+    (10, 2150, "Yirgacheffe, Etiopía", date(2025, 5, 22), 0.25),
 ]
+LOT_GRAIN_COUNT = 8  # los granos 9 y 10 estan en el catalogo pero todavia no se compraron lotes
 
 LOT_NAME_POOLS = {
     1: ["La Esperanza Lavado", "Pink Bourbon Microlote", "El Mirador Honey", "Villa Rica Natural", "Cerro Azul Lavado"],
@@ -84,16 +91,16 @@ LOT_KILOS = [6.0, 8.0, 10.0, 12.0, 15.0]
 
 
 def build_lots():
-    """Un lote nuevo cada 13 días, rotando los 8 granos y los 6 proveedores."""
+    """Un lote nuevo cada 13 días, rotando los 8 granos con lotes y los 10 proveedores."""
     lots, names = [], {}
     for index in range(LOT_COUNT):
-        grain = (index * 3) % len(GRANOS) + 1
+        grain = (index * 3) % LOT_GRAIN_COUNT + 1
         lot_id = index + 1
         entry = FIRST_LOT_DAY + timedelta(days=LOT_STEP_DAYS * index)
         # id, grano, proveedor, ingreso, dias de tostado previos, kg, dias de uso
         lots.append((lot_id, grain, index % len(PROVEEDORES) + 1, entry, 3 + (index * 5) % 6,
                      LOT_KILOS[index % len(LOT_KILOS)], LOT_USAGE_DAYS))
-        names[lot_id] = LOT_NAME_POOLS[grain][index // len(GRANOS)]
+        names[lot_id] = LOT_NAME_POOLS[grain][index // LOT_GRAIN_COUNT]
     return lots, names
 
 
@@ -119,6 +126,9 @@ BARISTAS = [
     (5, "33781450", "Valentina", "Pereyra", 6, 0.20, 0.50, {1, 3, 4, 6, 7}, 3, date(2025, 6, 1), date(2026, 5, 31)),
     (6, "39665208", "Julián", "Acosta", 2, -0.10, 0.60, {2, 4, 5, 7}, 2, date(2025, 9, 15), None),
     (7, "35118843", "Camila", "Ferrer", 4, 0.00, 1.40, {3, 4, 6, 7}, 2, date(2025, 8, 1), None),
+    (8, "37552901", "Ramiro", "Quiroga", 2, -0.05, 0.60, {1, 2, 3, 4, 5, 6, 7}, 2, date(2025, 6, 1), date(2025, 10, 31)),
+    (9, "34219876", "Florencia", "Montero", 3, 0.10, 0.55, {1, 3, 4, 6}, 2, date(2025, 11, 1), date(2026, 2, 28)),
+    (10, "42180533", "Tomás", "Arias", 1, -0.20, 0.65, {1, 2, 4, 5, 7}, 2, date(2026, 6, 1), None),
 ]
 NEVER_LOW_BARISTA = 1          # nunca recibe menos de 3
 NO_RECENT_RATINGS_BARISTA = 6  # sin calificaciones desde septiembre de 2026
@@ -126,6 +136,7 @@ LAST_BAD_BARISTA = 4           # su ultima calibracion queda con puntajes bajos
 INCONSISTENT_BARISTA = 7       # recibe 5 y 1 o 2
 ALL_BARISTA_CLIENTS = (1, 2, 3)  # califican calibraciones de todos los baristas
 FULL_COVERAGE_BARISTAS = (1, 2)
+DISAGREEING_CLIENTS = (42, 43, 44)  # califican el mismo lote con 5 y con 1
 
 FIRST_NAMES = [
     "Agustina", "Bruno", "Carolina", "Diego", "Emilia", "Federico", "Gabriela", "Hernán", "Inés", "Joaquín",
@@ -248,7 +259,7 @@ def missing_coverage_sessions(calibrations):
     sessions = []
     for barista_id in FULL_COVERAGE_BARISTAS:
         covered = {grain_of[c["lot"]] for c in calibrations if c["barista"] == barista_id}
-        for grain in (g[0] for g in GRANOS if g[0] not in covered):
+        for grain in (g for g in range(1, LOT_GRAIN_COUNT + 1) if g not in covered):
             lot = rng.choice([l for l in LOTES if l[1] == grain and l[0] != NEVER_CALIBRATED_LOT])
             sessions.extend(build_session(barista_id, lot[0], rng.choice(lot_usage_days(lot))))
     return sessions
@@ -404,10 +415,25 @@ def enforce_story_cases(calibrations, ratings, used_pairs):
         if rating["calibration"] == last["id"]:
             rating["score"] = min(rating["score"], 2)
 
+    add_disagreements(calibrations, ratings, used_pairs)
+
     ratings.sort(key=lambda r: (r["when"], r["client"]))
     for index, rating in enumerate(ratings, start=1):
         rating["id"] = index
     return last
+
+
+def add_disagreements(calibrations, ratings, used_pairs):
+    """Clientes que dan un 5 y un 1 a dos calibraciones del mismo lote: sirve para ver si la nota depende del cliente."""
+    finals_by_lot = {}
+    for c in calibrations:
+        if c["final"] and c["barista"] != NEVER_LOW_BARISTA and is_ratable(c["barista"], c):
+            finals_by_lot.setdefault(c["lot"], []).append(c)
+    lots = [lot_id for lot_id, finals in sorted(finals_by_lot.items()) if len(finals) >= 2]
+    for position, client in enumerate(DISAGREEING_CLIENTS):
+        first, second = finals_by_lot[lots[position % len(lots)]][:2]
+        add_rating(ratings, used_pairs, first, client, 5)
+        add_rating(ratings, used_pairs, second, client, 1)
 
 
 # ---------- salida SQL ----------
@@ -641,15 +667,18 @@ Para ejecutarlos a mano, en este orden:
 | Orden | Archivo | Qué hace |
 |---|---|---|
 | 1 | `01_crear_base_y_tablas.sql` | Crea la base `Cafetear` y las 7 tablas. Borra lo que hubiera |
-| 2 | `02_datos_maestros.sql` | 6 proveedores, 8 granos, {LOT_COUNT} lotes, 7 baristas y 60 clientes |
+| 2 | `02_datos_maestros.sql` | {len(PROVEEDORES)} proveedores, {len(GRANOS)} granos, {LOT_COUNT} lotes, {len(BARISTAS)} baristas y {CLIENT_COUNT} clientes |
 | 3 | `03_calibraciones.sql` | {n_cal} calibraciones entre junio de 2025 y octubre de 2026 |
 | 4 | `04_calificaciones.sql` | {n_rat} calificaciones de clientes |
 | 5 | `05_datos_con_errores.sql` | Opcional: errores a propósito para los enunciados 27 y 28 |
 | 6 | `06_calibraciones_de_hoy.sql` | Opcional: calibraciones con la fecha de hoy, para el enunciado 31 |
 | 7 | `07_limpiar_errores.sql` | Borra lo del paso 5. Correr antes de los enunciados 32 a 34 |
 | 8 | `crud/*.sql` | Los 35 procedimientos del CRUD (`usp_<Tabla>_Crear`, `_Obtener`, `_Listar`, `_Actualizar`, `_Eliminar`). Se pueden volver a ejecutar sin problema |
+| 9 | `objetos/*.sql` | 4 funciones, 4 vistas, 2 procedimientos de reporte, 2 triggers, 7 índices y 3 roles. Se pueden volver a ejecutar sin problema |
 
-`pruebas/probar_crud.sql` prueba todos los procedimientos, incluidos los casos de error, y no deja datos. Los scripts `inicializar.sh` y `cargar_cafetear.sh` hacen toda la carga automáticamente.
+`pruebas/probar_crud.sql` y `pruebas/probar_objetos.sql` prueban los procedimientos, las funciones, las vistas, los triggers y los permisos, incluidos los casos de error, y no dejan datos. `mantenimiento/backup_y_restauracion.sql` hace y verifica una copia de seguridad. Los scripts `inicializar.sh` y `cargar_cafetear.sh` hacen toda la carga automáticamente.
+
+Los triggers se crean después de cargar los datos. Por eso `05_datos_con_errores.sql` solo se puede correr si los triggers todavía no existen: usá la carga con `--con-errores`, que lo hace en el orden correcto.
 
 Los archivos 01 a 07 los genera `../herramientas/generar_datos.py`: no se editan a mano. Los datos son siempre los mismos, así que todo el equipo ve lo mismo.
 
@@ -657,7 +686,7 @@ Los archivos 01 a 07 los genera `../herramientas/generar_datos.py`: no se editan
 
 - **La calidad cambia mes a mes.** Arranca baja en junio de 2025, mejora, tiene bajones en diciembre de 2025 y en junio de 2026, y cierra alta. Los lunes puntúan un poco peor.
 - **Cada vez se necesitan menos pruebas por día.** Al principio un barista hace de 3 a 5 pruebas hasta dar con la calibración, y hoy de 1 a 3.
-- **Hay rotación.** Valentina Pereyra se fue en mayo de 2026, y Sofía, Mateo, Julián y Camila fueron entrando.
+- **Hay rotación.** Ramiro Quiroga estuvo hasta octubre de 2025, Florencia Montero de noviembre de 2025 a febrero de 2026 y Valentina Pereyra hasta mayo de 2026. Sofía, Julián, Camila, Mateo y Tomás Arias fueron entrando.
 - **Los clientes entran y se van.** Hay clientes habituales y otros que dejan de opinar.
 
 ## Casos armados para los enunciados
@@ -671,7 +700,8 @@ Los archivos 01 a 07 los genera `../herramientas/generar_datos.py`: no se editan
 - **Camila Ferrer (7)** recibe 5 y también 1 o 2 (enunciado 15).
 - **Mateo Duarte (4)** tiene la última calibración con puntajes bajos (enunciado 23).
 - **Julián Acosta (6)** no tiene calificaciones desde septiembre de 2026 (enunciado 25).
-- **Clientes 1, 2 y 3** calificaron calibraciones de los 7 baristas (enunciado 17).
+- **Clientes 1, 2 y 3** calificaron calibraciones de los {len(BARISTAS)} baristas (enunciado 17).
+- **Los granos 9 y 10** están en el catálogo pero todavía no tienen lotes.
 - Muchas calibraciones de prueba no tienen calificaciones, porque los clientes solo opinan sobre el café final (enunciado 16).
 
 Los IDs de Barista y Cliente son IDENTITY, así que las calibraciones y calificaciones asumen que esas tablas arrancaron vacías (por eso el script 01 las vuelve a crear).
@@ -710,7 +740,7 @@ def verify_coverage(calibrations):
     covered = {}
     for c in calibrations:
         covered.setdefault(c["barista"], set()).add(grain_of[c["lot"]])
-    full = [b for b, grains in covered.items() if len(grains) == len(GRANOS)]
+    full = [b for b, grains in covered.items() if len(grains) == LOT_GRAIN_COUNT]
     assert sorted(full) == [1, 2], f"division relacional: {full}"
     grain_baristas = {}
     for c in calibrations:
@@ -751,6 +781,14 @@ def trials_per_day(calibrations, months):
     return len(chosen) / len(days)
 
 
+def clients_that_disagree(ratings, cal_by_id):
+    scores_by_client_lot = {}
+    for r in ratings:
+        key = (r["client"], cal_by_id[r["calibration"]]["lot"])
+        scores_by_client_lot.setdefault(key, []).append(r["score"])
+    return {client for (client, _), scores in scores_by_client_lot.items() if max(scores) - min(scores) >= 3}
+
+
 def verify_variety(calibrations, ratings, cal_by_id):
     means = monthly_means(ratings)
     assert len(means) >= 14, "pocos meses con datos suficientes"
@@ -766,6 +804,7 @@ def verify_variety(calibrations, ratings, cal_by_id):
     dropped = [c for c, months in months_of.items() if (2026, 9) in months and (2026, 10) not in months]
     assert len(dropped) >= 3, "pocos clientes que dejan de opinar"
     assert sum(1 for r in ratings if (r["when"].year, r["when"].month) == (2026, 2)) >= 3
+    assert len(clients_that_disagree(ratings, cal_by_id)) >= 2, "no hay clientes con notas muy distintas en un mismo lote"
 
 
 def generate_valid_dataset():

@@ -21,15 +21,15 @@ Tiene que terminar mostrando estas cantidades, que son las mismas para todos:
 
 | Tabla | Filas |
 |---|---|
-| Proveedor | 6 |
-| Grano | 8 |
+| Proveedor | 10 |
+| Grano | 10 |
 | Lote | 40 |
-| Barista | 7 |
+| Barista | 10 |
 | Cliente | 60 |
-| Calibracion | 207 |
-| Calificacion | 363 |
+| Calibracion | 225 |
+| Calificacion | 346 |
 
-Y `procedimientos_crud: 35`. Si tu resultado es distinto, algo no cargó bien: mirá la sección de problemas frecuentes.
+Y, en la segunda tabla: 37 procedimientos, 4 vistas, 4 funciones, 2 triggers y 7 índices. Si tu resultado es distinto, algo no cargó bien: mirá la sección de problemas frecuentes.
 
 ## Conectarse
 
@@ -67,11 +67,13 @@ Volver a hacer `docker compose up` **no pisa** los datos que cargaste. Solo actu
 | `06_calibraciones_de_hoy.sql` | Opcional: calibraciones con la fecha de hoy, para el enunciado 31 |
 | `07_limpiar_errores.sql` | Borra lo del 05 |
 | `crud/` | Los 35 procedimientos del CRUD, un archivo por tabla |
-| `pruebas/probar_crud.sql` | Prueba todo el CRUD y no deja datos |
+| `objetos/` | Funciones, vistas, procedimientos de reporte, triggers, índices y roles |
+| `pruebas/` | `probar_crud.sql` y `probar_objetos.sql`: prueban todo, incluidos los errores, y no dejan datos |
+| `mantenimiento/backup_y_restauracion.sql` | Copia de seguridad y restauración |
 | `Queries.sql` | Espacio para las consultas de cada uno |
 | `inicializar.sh`, `cargar_cafetear.sh` | Scripts de carga (el segundo es para quien ya tiene su propio SQL Server en Docker) |
 
-Los archivos `01` a `07` y `crud/` **no se editan a mano**: los generan los programas de la carpeta `herramientas` (ver más abajo).
+Los archivos `01` a `07` y `crud/` **no se editan a mano**: los generan los programas de la carpeta `herramientas` (ver más abajo). Los de `objetos/` sí se editan a mano.
 
 ## Regla del equipo: el CRUD va solo por procedimientos
 

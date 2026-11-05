@@ -9,15 +9,18 @@ Para ejecutarlos a mano, en este orden:
 | Orden | Archivo | Qué hace |
 |---|---|---|
 | 1 | `01_crear_base_y_tablas.sql` | Crea la base `Cafetear` y las 7 tablas. Borra lo que hubiera |
-| 2 | `02_datos_maestros.sql` | 6 proveedores, 8 granos, 40 lotes, 7 baristas y 60 clientes |
-| 3 | `03_calibraciones.sql` | 207 calibraciones entre junio de 2025 y octubre de 2026 |
-| 4 | `04_calificaciones.sql` | 363 calificaciones de clientes |
+| 2 | `02_datos_maestros.sql` | 10 proveedores, 10 granos, 40 lotes, 10 baristas y 60 clientes |
+| 3 | `03_calibraciones.sql` | 225 calibraciones entre junio de 2025 y octubre de 2026 |
+| 4 | `04_calificaciones.sql` | 346 calificaciones de clientes |
 | 5 | `05_datos_con_errores.sql` | Opcional: errores a propósito para los enunciados 27 y 28 |
 | 6 | `06_calibraciones_de_hoy.sql` | Opcional: calibraciones con la fecha de hoy, para el enunciado 31 |
 | 7 | `07_limpiar_errores.sql` | Borra lo del paso 5. Correr antes de los enunciados 32 a 34 |
 | 8 | `crud/*.sql` | Los 35 procedimientos del CRUD (`usp_<Tabla>_Crear`, `_Obtener`, `_Listar`, `_Actualizar`, `_Eliminar`). Se pueden volver a ejecutar sin problema |
+| 9 | `objetos/*.sql` | 4 funciones, 4 vistas, 2 procedimientos de reporte, 2 triggers, 7 índices y 3 roles. Se pueden volver a ejecutar sin problema |
 
-`pruebas/probar_crud.sql` prueba todos los procedimientos, incluidos los casos de error, y no deja datos. Los scripts `inicializar.sh` y `cargar_cafetear.sh` hacen toda la carga automáticamente.
+`pruebas/probar_crud.sql` y `pruebas/probar_objetos.sql` prueban los procedimientos, las funciones, las vistas, los triggers y los permisos, incluidos los casos de error, y no dejan datos. `mantenimiento/backup_y_restauracion.sql` hace y verifica una copia de seguridad. Los scripts `inicializar.sh` y `cargar_cafetear.sh` hacen toda la carga automáticamente.
+
+Los triggers se crean después de cargar los datos. Por eso `05_datos_con_errores.sql` solo se puede correr si los triggers todavía no existen: usá la carga con `--con-errores`, que lo hace en el orden correcto.
 
 Los archivos 01 a 07 los genera `../herramientas/generar_datos.py`: no se editan a mano. Los datos son siempre los mismos, así que todo el equipo ve lo mismo.
 
@@ -25,7 +28,7 @@ Los archivos 01 a 07 los genera `../herramientas/generar_datos.py`: no se editan
 
 - **La calidad cambia mes a mes.** Arranca baja en junio de 2025, mejora, tiene bajones en diciembre de 2025 y en junio de 2026, y cierra alta. Los lunes puntúan un poco peor.
 - **Cada vez se necesitan menos pruebas por día.** Al principio un barista hace de 3 a 5 pruebas hasta dar con la calibración, y hoy de 1 a 3.
-- **Hay rotación.** Valentina Pereyra se fue en mayo de 2026, y Sofía, Mateo, Julián y Camila fueron entrando.
+- **Hay rotación.** Ramiro Quiroga estuvo hasta octubre de 2025, Florencia Montero de noviembre de 2025 a febrero de 2026 y Valentina Pereyra hasta mayo de 2026. Sofía, Julián, Camila, Mateo y Tomás Arias fueron entrando.
 - **Los clientes entran y se van.** Hay clientes habituales y otros que dejan de opinar.
 
 ## Casos armados para los enunciados
@@ -39,7 +42,8 @@ Los archivos 01 a 07 los genera `../herramientas/generar_datos.py`: no se editan
 - **Camila Ferrer (7)** recibe 5 y también 1 o 2 (enunciado 15).
 - **Mateo Duarte (4)** tiene la última calibración con puntajes bajos (enunciado 23).
 - **Julián Acosta (6)** no tiene calificaciones desde septiembre de 2026 (enunciado 25).
-- **Clientes 1, 2 y 3** calificaron calibraciones de los 7 baristas (enunciado 17).
+- **Clientes 1, 2 y 3** calificaron calibraciones de los 10 baristas (enunciado 17).
+- **Los granos 9 y 10** están en el catálogo pero todavía no tienen lotes.
 - Muchas calibraciones de prueba no tienen calificaciones, porque los clientes solo opinan sobre el café final (enunciado 16).
 
 Los IDs de Barista y Cliente son IDENTITY, así que las calibraciones y calificaciones asumen que esas tablas arrancaron vacías (por eso el script 01 las vuelve a crear).

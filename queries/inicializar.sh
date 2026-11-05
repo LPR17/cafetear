@@ -71,6 +71,13 @@ load_procedures() {
   done
 }
 
+load_objects() {
+  local file
+  for file in "$SCRIPTS_DIR"/objetos/*.sql; do
+    run_file "$file"
+  done
+}
+
 print_summary() {
   run_sql -d Cafetear -Q "
 SET NOCOUNT ON;
@@ -81,7 +88,11 @@ UNION ALL SELECT 'Barista', COUNT(*) FROM Barista
 UNION ALL SELECT 'Cliente', COUNT(*) FROM Cliente
 UNION ALL SELECT 'Calibracion', COUNT(*) FROM Calibracion
 UNION ALL SELECT 'Calificacion', COUNT(*) FROM Calificacion;
-SELECT COUNT(*) AS procedimientos_crud FROM sys.procedures WHERE name LIKE 'usp[_]%';"
+SELECT (SELECT COUNT(*) FROM sys.procedures WHERE name LIKE 'usp[_]%') AS procedimientos,
+       (SELECT COUNT(*) FROM sys.views) AS vistas,
+       (SELECT COUNT(*) FROM sys.objects WHERE type IN ('FN', 'IF', 'TF')) AS funciones,
+       (SELECT COUNT(*) FROM sys.triggers WHERE parent_class = 1) AS triggers,
+       (SELECT COUNT(*) FROM sys.indexes i JOIN sys.objects o ON o.object_id = i.object_id WHERE o.is_ms_shipped = 0 AND i.name LIKE 'IX[_]%') AS indices;"
 }
 
 main() {
@@ -94,6 +105,8 @@ main() {
   fi
   echo "Actualizando procedimientos almacenados..."
   load_procedures
+  echo "Actualizando funciones, vistas, triggers, índices y roles..."
+  load_objects
   print_summary
 }
 
