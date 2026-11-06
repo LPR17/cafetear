@@ -178,3 +178,18 @@ JOIN Calificacion cf ON cf.IDCalibracion = c.IDCalibracion
 GROUP BY l.IDLote, l.nombre, p.razonSocial
 HAVING COUNT(*) >= 3
 ORDER BY Diferencia DESC;
+ 
+ /*
+    Top 5 timepos de extracción con mejor calificación promedio
+ */
+
+ SELECT TOP 5
+    c.tiempoExtraccion               AS TiempoSeg,
+    AVG(cf.puntaje * 1.0)            AS PuntajePromedio,          -- * 1.0 para no truncar
+    COUNT(*)                         AS CantidadCalificaciones,
+    COUNT(DISTINCT c.IDCalibracion)  AS CantidadCalibraciones     -- cuántas calibraciones usaron ese tiempo
+FROM Calibracion c
+JOIN Calificacion cf ON cf.IDCalibracion = c.IDCalibracion       -- cada calificación evalúa una calibración
+GROUP BY c.tiempoExtraccion
+HAVING COUNT(*) >= 5                                              -- evidencia mínima
+ORDER BY PuntajePromedio DESC, CantidadCalificaciones DESC;       -- desempate: más opiniones
