@@ -5,34 +5,6 @@
 USE Cafetear;
 GO
 
--- Control de lote: no se calibra antes de que el lote ingrese ni con café que ya se agotó.
-CREATE OR ALTER TRIGGER dbo.trg_Calibracion_ControlLote
-ON dbo.Calibracion
-AFTER INSERT, UPDATE
-AS
-BEGIN
-    SET NOCOUNT ON;
-
-    IF EXISTS (SELECT 1
-               FROM inserted i
-               JOIN Lote l ON l.IDLote = i.IDLote
-               WHERE CAST(i.fechaCalibracion AS DATE) < l.fechaIngreso)
-    BEGIN
-        ROLLBACK TRANSACTION;
-        THROW 50010, N'No se puede calibrar con un lote antes de su ingreso.', 1;
-    END;
-
-    IF EXISTS (SELECT 1
-               FROM inserted i
-               JOIN Lote l ON l.IDLote = i.IDLote
-               WHERE (SELECT SUM(c.dosis) FROM Calibracion c WHERE c.IDLote = i.IDLote) > l.cantidadKg * 1000)
-    BEGIN
-        ROLLBACK TRANSACTION;
-        THROW 50011, N'El lote no tiene café suficiente para esta calibración.', 1;
-    END;
-END
-GO
-
 -- Control de calificaciones: puntaje de 1 a 5, no anterior a la calibración y una sola por cliente y calibración.
 CREATE OR ALTER TRIGGER dbo.trg_Calificacion_Control
 ON dbo.Calificacion

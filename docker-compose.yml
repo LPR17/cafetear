@@ -1,4 +1,4 @@
-# Entorno de Cafetear: SQL Server 2022 con la base cargada y los procedimientos de CRUD.
+# Entorno de Cafetear: SQL Server 2022 con la base cargada, más sus funciones, vistas, procedimientos y triggers.
 #
 #   docker compose up -d        levanta todo (la primera vez tarda 1 o 2 minutos)
 #   docker compose logs init    muestra cómo salió la carga de la base

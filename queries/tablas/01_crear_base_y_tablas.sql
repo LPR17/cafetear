@@ -8,7 +8,6 @@ GO
 USE Cafetear;
 GO
 
-DROP VIEW IF EXISTS vw_RendimientoPorLote;
 DROP TABLE IF EXISTS Calificacion;
 DROP TABLE IF EXISTS Calibracion;
 DROP TABLE IF EXISTS Lote;

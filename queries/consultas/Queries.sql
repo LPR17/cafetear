@@ -72,7 +72,7 @@ ORDER BY g.IDGrano, p.razonSocial, SemanasDesdeTostado;
 /*
 Mostrar para cada grano y proveedor la calibración con mayor calificación promedio.
 Se exigen al menos 3 calificaciones; si hay empate gana la que tiene más calificaciones y, si siguen empatadas, la más antigua.
-Usa la vista vw_PuntajePorCalibracion (queries/objetos/02_vistas.sql), que ya trae el promedio y la cantidad por calibración.
+Usa la vista vw_PuntajePorCalibracion (queries/vistas/vistas.sql), que ya trae el promedio y la cantidad por calibración.
 */
 
 SELECT

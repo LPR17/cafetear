@@ -1,6 +1,6 @@
 # Cafetear · Base de datos
 
-SQL Server 2022 en Docker con la base **Cafetear** (7 tablas), datos de ejemplo y un **CRUD completo hecho con procedimientos almacenados**. Todo se levanta con un comando y **todo el equipo ve exactamente los mismos datos**: están guardados como archivos `.sql` fijos y no se generan al azar en cada máquina.
+SQL Server 2022 en Docker con la base **Cafetear** (7 tablas), datos de ejemplo y los objetos que pide la consigna: **función, vistas, procedimientos, triggers**, índices y roles. Todo se levanta con un comando y **todo el equipo ve exactamente los mismos datos**: están guardados como archivos `.sql` fijos y no se generan al azar en cada máquina.
 
 ## Levantarlo
 
@@ -29,7 +29,7 @@ Tiene que terminar mostrando estas cantidades, que son las mismas para todos:
 | Calibracion | 225 |
 | Calificacion | 346 |
 
-Y, en la segunda tabla: 37 procedimientos, 4 vistas, 4 funciones, 3 triggers y 7 índices. Si tu resultado es distinto, algo no cargó bien: mirá la sección de problemas frecuentes.
+Y, en la segunda tabla: 3 procedimientos, 2 vistas, 1 función, 2 triggers y 3 índices. Si tu resultado es distinto, algo no cargó bien: mirá la sección de problemas frecuentes.
 
 ## Conectarse
 
@@ -52,7 +52,7 @@ Si el puerto 1433 ya lo usa otro SQL Server, o querés otra contraseña, copiá 
 | Apagar y conservar tus datos | `docker compose down` |
 | Apagar y borrar todo | `docker compose down -v` |
 | Volver a los datos de ejemplo | `RESET_DB=1 docker compose run --rm init` |
-| Recargar solo los procedimientos | `docker compose run --rm init` |
+| Recargar solo los objetos (procedimientos, vistas, triggers, etc.) | `docker compose run --rm init` |
 | Sumar los errores a propósito (enunciados 27 y 28) | `WITH_ERRORS=1 RESET_DB=1 docker compose run --rm init` |
 | Sumar las calibraciones de hoy (enunciado 31) | `WITH_TODAY=1 RESET_DB=1 docker compose run --rm init` |
 
@@ -64,81 +64,60 @@ Volver a hacer `docker compose up` **no pisa** los datos que cargaste. Solo actu
 |---|---|
 | `tablas/` | `01_crear_base_y_tablas.sql`: la base y las 7 tablas |
 | `datos/` | Los datos de ejemplo (de junio de 2025 a octubre de 2026), más dos scripts opcionales con errores a propósito (enunciados 27 y 28) y calibraciones de hoy (enunciado 31), y el que limpia los errores |
-| `procedimientos/` | `crud/`: los 35 procedimientos del CRUD, un archivo por tabla. `reportes.sql`: `usp_RankingBaristas` y `usp_ReporteLote` |
-| `funciones/` | Las 4 funciones |
-| `vistas/` | Las 4 vistas |
-| `triggers/` | Los 3 triggers: control de calibraciones, control de calificaciones y asignación automática de la calibración |
-| `indices/` | Los 7 índices |
-| `seguridad/` | Los 3 roles y sus permisos |
+| `procedimientos/` | `procedimientos.sql`: `usp_Calibracion_Crear`, `usp_Calificacion_Crear` y `usp_RankingBaristas` |
+| `funciones/` | `fn_RelacionExtraccion` |
+| `vistas/` | `vw_PuntajePorCalibracion` (usa la función y la reutilizan la otra vista y el ranking) y `vw_MejorCalibracionPorGrano` |
+| `triggers/` | `trg_Calificacion_Control` (puntaje de 1 a 5, no anterior a la calibración, una por cliente) y `trg_Calificacion_AsignarCalibracion` (asigna la calibración más próxima) |
+| `indices/` | Los 3 índices |
+| `seguridad/` | Los 2 roles (barista y analista) y sus permisos |
 | `consultas/` | `Queries.sql`: las consultas de cada uno |
-| `pruebas/` | `probar_crud.sql` y `probar_objetos.sql`: prueban todo, incluidos los errores, y no dejan datos |
-| `mantenimiento/` | `backup_y_restauracion.sql`: copia de seguridad y restauración |
+| `pruebas/` | `probar_todo.sql`: prueba todo, incluidos los errores, y no deja datos |
+| `mantenimiento/` | `backup_y_restauracion.sql`: copia de seguridad y restauración. `limpiar_objetos.sql`: lo usa la carga para recrear los objetos |
 | `inicializar.sh`, `cargar_cafetear.sh` | Scripts de carga (el segundo es para quien ya tiene su propio SQL Server en Docker) |
 
-Los archivos de `tablas/`, `datos/` y `procedimientos/crud/` **no se editan a mano**: los generan los programas de la carpeta `herramientas` (ver más abajo). Lo demás sí se edita a mano. El detalle del orden de ejecución está en [queries/README.md](queries/README.md).
+Los archivos de `tablas/` y `datos/` **no se editan a mano**: los genera `herramientas/generar_datos.py` (ver más abajo). Lo demás sí se edita a mano. El detalle del orden de ejecución está en [queries/README.md](queries/README.md).
 
-## Regla del equipo: el CRUD va solo por procedimientos
+## Procedimientos y reglas del negocio
 
-Para crear, leer, modificar y borrar datos se usan los procedimientos y no `INSERT`, `UPDATE` ni `DELETE` directos. Así las reglas de negocio (puntaje de 1 a 5, no calibrar un lote antes de que ingrese, etc.) se aplican siempre en el mismo lugar.
-
-Cada tabla tiene cinco procedimientos con el nombre `usp_<Tabla>_<Acción>`:
-
-| Tabla | Procedimientos |
-|---|---|
-| Proveedor | `usp_Proveedor_Crear`, `_Obtener`, `_Listar`, `_Actualizar`, `_Eliminar` |
-| Grano | `usp_Grano_Crear`, `_Obtener`, `_Listar`, `_Actualizar`, `_Eliminar` |
-| Lote | `usp_Lote_Crear`, `_Obtener`, `_Listar`, `_Actualizar`, `_Eliminar` |
-| Barista | `usp_Barista_Crear`, `_Obtener`, `_Listar`, `_Actualizar`, `_Eliminar` |
-| Cliente | `usp_Cliente_Crear`, `_Obtener`, `_Listar`, `_Actualizar`, `_Eliminar` |
-| Calibracion | `usp_Calibracion_Crear`, `_Obtener`, `_Listar`, `_Actualizar`, `_Eliminar` |
-| Calificacion | `usp_Calificacion_Crear`, `_Obtener`, `_Listar`, `_Actualizar`, `_Eliminar` |
-
-Al crear o actualizar una calificación no se informa la calibración: el cliente no la conoce, así que el procedimiento asigna la más próxima anterior a la fecha de la calificación.
-
-### Cómo se usan
+Para registrar calibraciones y calificaciones se usan los procedimientos, así las reglas se aplican siempre en el mismo lugar:
 
 ```sql
--- Crear: devuelve el ID nuevo
-EXEC usp_Barista_Crear @DNI = '30111222', @nombre = N'Ana', @apellido = N'Gómez', @experiencia = 3;
+-- Registrar una calibración: devuelve el ID nuevo
+EXEC usp_Calibracion_Crear @fechaCalibracion = '2026-11-05T08:30:00', @dosis = 18.0,
+                           @tiempoExtraccion = 28, @rendimiento = 36.0, @IDBarista = 1, @IDLote = 3;
 
--- Obtener uno, listar todos y actualizar
-EXEC usp_Barista_Obtener @IDBarista = 8;
-EXEC usp_Barista_Listar;
-EXEC usp_Barista_Actualizar @IDBarista = 8, @DNI = '30111222', @nombre = N'Ana', @apellido = N'Gómez', @experiencia = 4;
+-- Registrar una calificación: no se indica la calibración, la asigna un trigger
+EXEC usp_Calificacion_Crear @fecha = '2026-11-05T10:00:00', @puntaje = 5, @IDCliente = 1;
 
--- Eliminar
-EXEC usp_Barista_Eliminar @IDBarista = 8;
+-- Ranking de baristas en un período
+EXEC usp_RankingBaristas @desde = '2026-01-01', @hasta = '2026-10-31';
 ```
 
-Obtener y Listar devuelven la fila tal cual está en la tabla (`SELECT *`). Los nombres de grano, proveedor, barista o cliente se obtienen con `JOIN` en tus consultas, que es justamente lo que se practica en los enunciados.
+El cliente no conoce la calibración que le tocó, así que `trg_Calificacion_AsignarCalibracion` (un trigger `INSTEAD OF INSERT`) la completa con la más próxima anterior a la fecha de la calificación. Vale para cualquier `INSERT`, venga o no de un procedimiento.
 
 ### Errores
 
-Los procedimientos son cortos a propósito. Solo validan las reglas de negocio que la tabla no controla sola, y avisan con un mensaje en español:
-
-| Tabla | Regla |
+| Dónde | Regla |
 |---|---|
-| Lote | La cantidad en kilos es mayor a cero y el tostado no es posterior al ingreso |
-| Barista | La experiencia no es negativa |
-| Calibracion | Dosis, tiempo y rendimiento son mayores a cero, y no es anterior al ingreso del lote |
-| Calificacion | El puntaje va de 1 a 5 y el mismo cliente no califica dos veces la misma calibración |
+| `usp_Calibracion_Crear` | Dosis, tiempo y rendimiento mayores a cero, y no anterior al ingreso del lote |
+| `trg_Calificacion_Control` | Puntaje de 1 a 5, calificación no anterior a la calibración y un cliente no califica dos veces la misma calibración |
+| `trg_Calificacion_AsignarCalibracion` | Tiene que existir una calibración anterior a la fecha de la calificación |
 
-El resto lo resuelve la propia tabla, con mensajes de SQL Server en inglés: un CUIT o DNI repetido (`UNIQUE`), un grano, proveedor, barista, lote o cliente que no existe (clave foránea), y borrar algo que otras tablas todavía usan. Para borrar hay que borrar primero lo que depende de eso, por ejemplo las calificaciones antes que la calibración. No hay borrado en cascada.
+El resto lo resuelve la propia tabla, con mensajes de SQL Server en inglés: tipos de dato, tamaño, `NOT NULL`, `UNIQUE` (CUIT y DNI) y claves foráneas.
 
 ## Decisiones de diseño que conviene conocer
 
-- **IDs.** Barista, Cliente y Proveedor usan `IDENTITY`, como en el DER. Grano, Lote, Calibracion y Calificacion no, así que su procedimiento de creación toma el ID como el máximo más uno. Es simple y alcanza para trabajar en el TP, pero dos usuarios creando a la vez podrían chocar.
-- **Reglas en los procedimientos y no en la tabla.** Los enunciados 32 a 34 piden agregar restricciones `CHECK` y `UNIQUE` con `ALTER TABLE`. Por eso las tablas no las traen, y mientras tanto los procedimientos ya hacen esas validaciones.
+- **IDs.** Barista, Cliente y Proveedor usan `IDENTITY`, como en el DER. Grano, Lote, Calibracion y Calificacion no, así que los procedimientos de creación toman el ID como el máximo más uno. Es simple y alcanza para trabajar en el TP, pero dos usuarios creando a la vez podrían chocar.
+- **Reglas en procedimientos y triggers, no en la tabla.** Los enunciados 32 a 34 piden agregar restricciones `CHECK` y `UNIQUE` con `ALTER TABLE`. Por eso las tablas no las traen, y mientras tanto los procedimientos y triggers ya hacen esas validaciones.
 - **Datos de ejemplo.** Son inventados, incluidos los CUIT. Cuentan una historia para que las queries devuelvan resultados interesantes: la calidad mejora con el tiempo con algunos bajones, cada vez hacen falta menos pruebas por día, hay rotación de baristas y clientes que entran y se van. El detalle está en `queries/README.md`.
 
-## Cambiar los datos o los procedimientos
+## Cambiar los datos
 
-Los programas están en la carpeta `herramientas` y necesitan Python 3:
+El programa está en la carpeta `herramientas` y necesita Python 3:
 
 | Programa | Qué genera |
 |---|---|
 | `python3 herramientas/generar_datos.py` | Los archivos de `queries/tablas`, `queries/datos` y `queries/README.md` |
-| `python3 herramientas/generar_crud.py` | Los 35 procedimientos de `queries/procedimientos/crud` |
 
 Los datos salen siempre iguales mientras no se toque el programa. Si alguien cambia algo y lo vuelve a generar, hay que avisar al equipo para que todos recarguen con `RESET_DB=1 docker compose run --rm init`.
 

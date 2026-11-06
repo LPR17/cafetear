@@ -72,9 +72,9 @@ run_folder() {
 }
 
 load_objects() {
+  run_file "$SCRIPTS_DIR/mantenimiento/limpiar_objetos.sql"
   run_folder funciones
   run_folder vistas
-  run_folder procedimientos/crud
   run_folder procedimientos
   run_folder triggers
   run_folder indices
