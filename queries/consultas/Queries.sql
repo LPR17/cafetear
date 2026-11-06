@@ -98,3 +98,29 @@ WHERE v.IDCalibracion = (
     ORDER BY v2.puntajePromedio DESC, v2.calificaciones DESC, v2.IDCalibracion
 )
 ORDER BY g.regionCosecha, p.razonSocial;
+
+
+-- Proveedor con mejor cafe.
+SELECT TOP 1 p.IDProveedor, p.razonSocial, ROUND(AVG(cf.puntaje*1.0),2) AS puntajePromedio FROM Proveedor p 
+JOIN Lote l ON l.IDProveedor = p.IDProveedor
+JOIN Calibracion cl ON  cl.IDLote = l.IDLote
+JOIN Calificacion cf ON cf.IDCalibracion = cl.IDCalibracion
+GROUP BY p.IDProveedor, p.razonSocial
+HAVING COUNT(cf.IDCalificacion) > 5
+ORDER BY AVG(cf.puntaje*1.0) DESC
+
+-- clientes que calificaron alguna vez y no calificaron en los últimos 90 días
+
+SELECT CONCAT(c.nombre, ' ', c.apellido) AS NombreCliente, c.DNI FROM Cliente c
+JOIN Calificacion cal ON cal.IDCliente = c.IDCliente
+GROUP BY c.IDCliente, c.nombre, c.apellido, c.DNI
+HAVING COUNT(cal.IDCalificacion) > 1 AND
+    DATEDIFF(day, MAX(cal.fecha), GETDATE()) > 90
+
+-- Calidad por día de la semana
+
+SELECT DATENAME(WEEKDAY, fecha) AS diaDeLaSemana, AVG(puntaje*1.0) AS calificacionPromedio FROM Calificacion
+GROUP BY DATENAME(WEEKDAY, fecha), DATEPART(WEEKDAY, fecha)
+ORDER BY DATEPART(WEEKDAY, fecha)
+
+

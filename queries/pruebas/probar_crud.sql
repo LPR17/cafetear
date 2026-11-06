@@ -22,10 +22,10 @@ EXEC usp_Cliente_Crear     @DNI = '10000002', @nombre = N'Cliente', @apellido = 
 DECLARE @lote INT = (SELECT IDLote FROM Lote WHERE nombre = N'Lote de prueba');
 DECLARE @barista INT = (SELECT IDBarista FROM Barista WHERE DNI = '10000001');
 DECLARE @cliente INT = (SELECT IDCliente FROM Cliente WHERE DNI = '10000002');
-EXEC usp_Calibracion_Crear @fechaCalibracion = '2026-10-05T08:00:00', @dosis = 18.0, @tiempoExtraccion = 28, @rendimiento = 36.0,
+EXEC usp_Calibracion_Crear @fechaCalibracion = '2026-12-01T08:00:00', @dosis = 18.0, @tiempoExtraccion = 28, @rendimiento = 36.0,
                            @IDBarista = @barista, @IDLote = @lote;
 DECLARE @calibracion INT = (SELECT IDCalibracion FROM Calibracion WHERE IDLote = @lote);
-EXEC usp_Calificacion_Crear @fecha = '2026-10-05T10:00:00', @puntaje = 5, @IDCliente = @cliente, @IDCalibracion = @calibracion;
+EXEC usp_Calificacion_Crear @fecha = '2026-12-01T10:00:00', @puntaje = 5, @IDCliente = @cliente;
 DECLARE @calificacion INT = (SELECT IDCalificacion FROM Calificacion WHERE IDCalibracion = @calibracion);
 
 PRINT '=== 2) Obtener y listar ===';
@@ -38,8 +38,7 @@ EXEC usp_Barista_Listar;
 
 PRINT '=== 3) Actualizar ===';
 EXEC usp_Proveedor_Actualizar @IDProveedor = @proveedor, @CUIT = '30-99999999-9', @razonSocial = N'Proveedor de prueba S.A.';
-EXEC usp_Calificacion_Actualizar @IDCalificacion = @calificacion, @fecha = '2026-10-05T10:00:00', @puntaje = 4,
-                                @IDCliente = @cliente, @IDCalibracion = @calibracion;
+EXEC usp_Calificacion_Actualizar @IDCalificacion = @calificacion, @fecha = '2026-12-01T10:00:00', @puntaje = 4, @IDCliente = @cliente;
 EXEC usp_Calificacion_Obtener @IDCalificacion = @calificacion;
 
 PRINT '=== 4) Errores que se tienen que rechazar (cada línea debe decir OK) ===';
@@ -53,13 +52,15 @@ BEGIN TRY EXEC usp_Barista_Crear @DNI = '10000003', @nombre = N'X', @apellido = 
 BEGIN CATCH PRINT 'OK: ' + ERROR_MESSAGE(); END CATCH
 BEGIN TRY EXEC usp_Cliente_Crear @DNI = '10000002', @nombre = N'X', @apellido = N'Y'; PRINT 'FALLÓ: aceptó un DNI repetido'; END TRY
 BEGIN CATCH PRINT 'OK: ' + ERROR_MESSAGE(); END CATCH
-BEGIN TRY EXEC usp_Calibracion_Crear @fechaCalibracion = '2026-10-05T08:00:00', @dosis = 0, @tiempoExtraccion = 28, @rendimiento = 36, @IDBarista = @barista, @IDLote = @lote; PRINT 'FALLÓ: aceptó dosis cero'; END TRY
+BEGIN TRY EXEC usp_Calibracion_Crear @fechaCalibracion = '2026-12-01T08:00:00', @dosis = 0, @tiempoExtraccion = 28, @rendimiento = 36, @IDBarista = @barista, @IDLote = @lote; PRINT 'FALLÓ: aceptó dosis cero'; END TRY
 BEGIN CATCH PRINT 'OK: ' + ERROR_MESSAGE(); END CATCH
 BEGIN TRY EXEC usp_Calibracion_Crear @fechaCalibracion = '2026-09-01T08:00:00', @dosis = 18, @tiempoExtraccion = 28, @rendimiento = 36, @IDBarista = @barista, @IDLote = @lote; PRINT 'FALLÓ: aceptó una calibración anterior al ingreso del lote'; END TRY
 BEGIN CATCH PRINT 'OK: ' + ERROR_MESSAGE(); END CATCH
-BEGIN TRY EXEC usp_Calificacion_Crear @fecha = '2026-10-05T11:00:00', @puntaje = 6, @IDCliente = @cliente, @IDCalibracion = @calibracion; PRINT 'FALLÓ: aceptó un puntaje de 6'; END TRY
+BEGIN TRY EXEC usp_Calificacion_Crear @fecha = '2026-12-01T11:00:00', @puntaje = 6, @IDCliente = @cliente; PRINT 'FALLÓ: aceptó un puntaje de 6'; END TRY
 BEGIN CATCH PRINT 'OK: ' + ERROR_MESSAGE(); END CATCH
-BEGIN TRY EXEC usp_Calificacion_Crear @fecha = '2026-10-05T11:00:00', @puntaje = 3, @IDCliente = @cliente, @IDCalibracion = @calibracion; PRINT 'FALLÓ: aceptó que el mismo cliente califique dos veces'; END TRY
+BEGIN TRY EXEC usp_Calificacion_Crear @fecha = '2000-01-01T10:00:00', @puntaje = 3, @IDCliente = @cliente; PRINT 'FALLÓ: aceptó una calificación sin calibración anterior'; END TRY
+BEGIN CATCH PRINT 'OK: ' + ERROR_MESSAGE(); END CATCH
+BEGIN TRY EXEC usp_Calificacion_Crear @fecha = '2026-12-01T11:00:00', @puntaje = 3, @IDCliente = @cliente; PRINT 'FALLÓ: aceptó que el mismo cliente califique dos veces'; END TRY
 BEGIN CATCH PRINT 'OK: ' + ERROR_MESSAGE(); END CATCH
 BEGIN TRY EXEC usp_Proveedor_Eliminar @IDProveedor = @proveedor; PRINT 'FALLÓ: borró un proveedor con lotes'; END TRY
 BEGIN CATCH PRINT 'OK: ' + ERROR_MESSAGE(); END CATCH

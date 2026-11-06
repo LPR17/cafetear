@@ -1,7 +1,7 @@
 """Genera los procedimientos almacenados de CRUD de Cafetear (versión simple, uno por tabla)."""
 from pathlib import Path
 
-OUT_DIR = Path(__file__).resolve().parent.parent / "queries" / "crud"
+OUT_DIR = Path(__file__).resolve().parent.parent / "queries" / "procedimientos" / "crud"
 
 # Cada tabla: columnas editables y las pocas reglas de negocio que la tabla no controla sola.
 # Lo demás (NOT NULL, UNIQUE, claves foráneas) lo resuelve la propia tabla.
@@ -49,11 +49,19 @@ ENTITIES = [
     },
     {
         "table": "Calificacion", "pk": "IDCalificacion", "identity": False,
-        "columns": [("fecha", "DATETIME"), ("puntaje", "INT"), ("IDCliente", "INT"), ("IDCalibracion", "INT")],
+        "columns": [("fecha", "DATETIME"), ("puntaje", "INT"), ("IDCliente", "INT")],
+        # El cliente no sabe que calibracion le toco: se le asigna la mas proxima anterior a su calificacion.
+        # Al crear lo hace el trigger trg_Calificacion_AsignarCalibracion; al actualizar, el procedimiento.
+        "derived": {
+            "name": "IDCalibracion",
+            "expression": ("(SELECT TOP 1 IDCalibracion FROM Calibracion WHERE fechaCalibracion <= @fecha "
+                           "ORDER BY fechaCalibracion DESC, IDCalibracion DESC)"),
+            "missing_message": "No hay ninguna calibración anterior a esa fecha.",
+        },
         "checks": [
             ("@puntaje NOT BETWEEN 1 AND 5", "El puntaje debe estar entre 1 y 5."),
             ("EXISTS (SELECT 1 FROM Calificacion WHERE IDCliente = @IDCliente AND IDCalibracion = @IDCalibracion{notself})",
-             "Ese cliente ya calificó esta calibración."),
+             "Ese cliente ya calificó esta calibración.", "solo_actualizar"),
         ],
     },
 ]
@@ -65,10 +73,27 @@ def parameters(items):
     return ",\n".join(f"    {item}" for item in items)
 
 
+def derived_lines(entity):
+    derived = entity.get("derived")
+    if not derived:
+        return []
+    return [f"    DECLARE @{derived['name']} INT = {derived['expression']};",
+            f"    IF @{derived['name']} IS NULL",
+            f"        THROW {ERROR_NUMBER}, N'{derived['missing_message']}', 1;"]
+
+
+def stored_columns(entity, updating):
+    """Columnas que se guardan: las que llegan por parametro y, al actualizar, la que se calcula."""
+    names = [name for name, _ in entity["columns"]]
+    return names + ([entity["derived"]["name"]] if "derived" in entity and updating else [])
+
+
 def checks_block(entity, updating):
     not_self = f" AND {entity['pk']} <> @{entity['pk']}" if updating else ""
-    lines = []
-    for condition, message in entity["checks"]:
+    lines = derived_lines(entity) if updating else []
+    for condition, message, *scope in entity["checks"]:
+        if scope and not updating:
+            continue
         lines.append(f"    IF {condition.format(notself=not_self)}")
         lines.append(f"        THROW {ERROR_NUMBER}, N'{message}', 1;")
     return "\n".join(lines) + "\n\n" if lines else ""
@@ -76,8 +101,8 @@ def checks_block(entity, updating):
 
 def create_procedure(entity):
     table, pk = entity["table"], entity["pk"]
-    names = ", ".join(name for name, _ in entity["columns"])
-    values = ", ".join(f"@{name}" for name, _ in entity["columns"])
+    names = ", ".join(stored_columns(entity, updating=False))
+    values = ", ".join(f"@{name}" for name in stored_columns(entity, updating=False))
     params = parameters(f"@{name} {sql_type}" for name, sql_type in entity["columns"])
     if entity["identity"]:
         insert = f"    INSERT INTO {table} ({names})\n    VALUES ({values});\n\n    SELECT SCOPE_IDENTITY() AS {pk};"
@@ -103,7 +128,7 @@ def list_procedure(entity):
 def update_procedure(entity):
     table, pk = entity["table"], entity["pk"]
     params = parameters([f"@{pk} INT"] + [f"@{name} {sql_type}" for name, sql_type in entity["columns"]])
-    assignments = ",\n        ".join(f"{name} = @{name}" for name, _ in entity["columns"])
+    assignments = ",\n        ".join(f"{name} = @{name}" for name in stored_columns(entity, updating=True))
     return (f"CREATE OR ALTER PROCEDURE usp_{table}_Actualizar\n{params}\nAS\nBEGIN\n"
             f"{checks_block(entity, True)}"
             f"    UPDATE {table}\n    SET {assignments}\n    WHERE {pk} = @{pk};\nEND\nGO\n")

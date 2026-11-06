@@ -1,28 +1,32 @@
 # Scripts de la base Cafetear
 
-Scripts en T-SQL (SQL Server) para crear la base, cargarla con datos de ejemplo y definir el CRUD. Todo es inventado.
+Scripts en T-SQL (SQL Server) para crear la base, cargarla con datos de ejemplo y definir sus objetos (procedimientos, funciones, vistas, triggers, índices y roles). Todo es inventado.
 
-Para levantar todo con Docker, mirá el [README de la carpeta de arriba](../README.md): `docker compose up -d` ejecuta estos scripts y los procedimientos de `crud/` solo.
+Para levantar todo con Docker, mirá el [README de la carpeta de arriba](../README.md): `docker compose up -d` ejecuta estos scripts en el orden correcto.
+
+## Qué hay en cada carpeta
 
 Para ejecutarlos a mano, en este orden:
 
-| Orden | Archivo | Qué hace |
+| Orden | Carpeta | Qué hay |
 |---|---|---|
-| 1 | `01_crear_base_y_tablas.sql` | Crea la base `Cafetear` y las 7 tablas. Borra lo que hubiera |
-| 2 | `02_datos_maestros.sql` | 10 proveedores, 10 granos, 40 lotes, 10 baristas y 60 clientes |
-| 3 | `03_calibraciones.sql` | 225 calibraciones entre junio de 2025 y octubre de 2026 |
-| 4 | `04_calificaciones.sql` | 346 calificaciones de clientes |
-| 5 | `05_datos_con_errores.sql` | Opcional: errores a propósito para los enunciados 27 y 28 |
-| 6 | `06_calibraciones_de_hoy.sql` | Opcional: calibraciones con la fecha de hoy, para el enunciado 31 |
-| 7 | `07_limpiar_errores.sql` | Borra lo del paso 5. Correr antes de los enunciados 32 a 34 |
-| 8 | `crud/*.sql` | Los 35 procedimientos del CRUD (`usp_<Tabla>_Crear`, `_Obtener`, `_Listar`, `_Actualizar`, `_Eliminar`). Se pueden volver a ejecutar sin problema |
-| 9 | `objetos/*.sql` | 4 funciones, 4 vistas, 2 procedimientos de reporte, 2 triggers, 7 índices y 3 roles. Se pueden volver a ejecutar sin problema |
+| 1 | `tablas/` | `01_crear_base_y_tablas.sql`: crea la base `Cafetear` y las 7 tablas. Borra lo que hubiera |
+| 2 | `datos/` | `02_datos_maestros.sql`: 10 proveedores, 10 granos, 40 lotes, 10 baristas y 60 clientes. `03_calibraciones.sql`: 225 calibraciones entre junio de 2025 y octubre de 2026. `04_calificaciones.sql`: 346 calificaciones. Opcionales: `05_datos_con_errores.sql` (errores a propósito para los enunciados 27 y 28), `06_calibraciones_de_hoy.sql` (enunciado 31) y `07_limpiar_errores.sql` (borra lo del 05; correr antes de los enunciados 32 a 34) |
+| 3 | `funciones/` | 4 funciones: relación de extracción, puntaje promedio de un lote, días desde el tostado y calibraciones de un barista |
+| 4 | `vistas/` | 4 vistas: puntaje por calibración, rendimiento por lote, mejor calibración por grano y calibraciones de hoy |
+| 5 | `procedimientos/` | `crud/`: los 35 procedimientos del CRUD, un archivo por tabla (`usp_<Tabla>_Crear`, `_Obtener`, `_Listar`, `_Actualizar`, `_Eliminar`). `reportes.sql`: `usp_RankingBaristas` y `usp_ReporteLote` |
+| 6 | `triggers/` | 3 triggers: control de calibraciones, control de calificaciones y asignación automática de la calibración |
+| 7 | `indices/` | 7 índices sobre claves foráneas y fechas |
+| 8 | `seguridad/` | 3 roles (barista, analista, administrador) con sus permisos |
+| — | `consultas/` | `Queries.sql`: las consultas de cada integrante |
+| — | `pruebas/` | `probar_crud.sql` y `probar_objetos.sql`: prueban todo, incluidos los casos de error, y no dejan datos |
+| — | `mantenimiento/` | `backup_y_restauracion.sql`: hace y verifica una copia de seguridad |
 
-`pruebas/probar_crud.sql` y `pruebas/probar_objetos.sql` prueban los procedimientos, las funciones, las vistas, los triggers y los permisos, incluidos los casos de error, y no dejan datos. `mantenimiento/backup_y_restauracion.sql` hace y verifica una copia de seguridad. Los scripts `inicializar.sh` y `cargar_cafetear.sh` hacen toda la carga automáticamente.
+Los scripts `inicializar.sh` y `cargar_cafetear.sh` hacen toda la carga automáticamente. Los scripts de funciones, vistas, procedimientos, triggers, índices y roles se pueden volver a ejecutar sin problema.
 
-Los triggers se crean después de cargar los datos. Por eso `05_datos_con_errores.sql` solo se puede correr si los triggers todavía no existen: usá la carga con `--con-errores`, que lo hace en el orden correcto.
+Los triggers se crean después de cargar los datos. Por eso `datos/05_datos_con_errores.sql` solo se puede correr si los triggers todavía no existen: usá la carga con `--con-errores`, que lo hace en el orden correcto.
 
-Los archivos 01 a 07 los genera `../herramientas/generar_datos.py`: no se editan a mano. Los datos son siempre los mismos, así que todo el equipo ve lo mismo.
+Los archivos de `tablas/` y `datos/` y los de `procedimientos/crud/` los generan los programas de `../herramientas/`: no se editan a mano. Los datos son siempre los mismos, así que todo el equipo ve lo mismo.
 
 ## Qué historia cuentan los datos
 

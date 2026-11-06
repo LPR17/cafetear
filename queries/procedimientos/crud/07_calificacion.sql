@@ -7,19 +7,16 @@ GO
 CREATE OR ALTER PROCEDURE usp_Calificacion_Crear
     @fecha DATETIME,
     @puntaje INT,
-    @IDCliente INT,
-    @IDCalibracion INT
+    @IDCliente INT
 AS
 BEGIN
     IF @puntaje NOT BETWEEN 1 AND 5
         THROW 50000, N'El puntaje debe estar entre 1 y 5.', 1;
-    IF EXISTS (SELECT 1 FROM Calificacion WHERE IDCliente = @IDCliente AND IDCalibracion = @IDCalibracion)
-        THROW 50000, N'Ese cliente ya calificó esta calibración.', 1;
 
     DECLARE @IDCalificacion INT = (SELECT ISNULL(MAX(IDCalificacion), 0) + 1 FROM Calificacion);
 
-    INSERT INTO Calificacion (IDCalificacion, fecha, puntaje, IDCliente, IDCalibracion)
-    VALUES (@IDCalificacion, @fecha, @puntaje, @IDCliente, @IDCalibracion);
+    INSERT INTO Calificacion (IDCalificacion, fecha, puntaje, IDCliente)
+    VALUES (@IDCalificacion, @fecha, @puntaje, @IDCliente);
 
     SELECT @IDCalificacion AS IDCalificacion;
 END
@@ -47,10 +44,12 @@ CREATE OR ALTER PROCEDURE usp_Calificacion_Actualizar
     @IDCalificacion INT,
     @fecha DATETIME,
     @puntaje INT,
-    @IDCliente INT,
-    @IDCalibracion INT
+    @IDCliente INT
 AS
 BEGIN
+    DECLARE @IDCalibracion INT = (SELECT TOP 1 IDCalibracion FROM Calibracion WHERE fechaCalibracion <= @fecha ORDER BY fechaCalibracion DESC, IDCalibracion DESC);
+    IF @IDCalibracion IS NULL
+        THROW 50000, N'No hay ninguna calibración anterior a esa fecha.', 1;
     IF @puntaje NOT BETWEEN 1 AND 5
         THROW 50000, N'El puntaje debe estar entre 1 y 5.', 1;
     IF EXISTS (SELECT 1 FROM Calificacion WHERE IDCliente = @IDCliente AND IDCalibracion = @IDCalibracion AND IDCalificacion <> @IDCalificacion)

@@ -29,7 +29,7 @@ Tiene que terminar mostrando estas cantidades, que son las mismas para todos:
 | Calibracion | 225 |
 | Calificacion | 346 |
 
-Y, en la segunda tabla: 37 procedimientos, 4 vistas, 4 funciones, 2 triggers y 7 índices. Si tu resultado es distinto, algo no cargó bien: mirá la sección de problemas frecuentes.
+Y, en la segunda tabla: 37 procedimientos, 4 vistas, 4 funciones, 3 triggers y 7 índices. Si tu resultado es distinto, algo no cargó bien: mirá la sección de problemas frecuentes.
 
 ## Conectarse
 
@@ -56,24 +56,26 @@ Si el puerto 1433 ya lo usa otro SQL Server, o querés otra contraseña, copiá 
 | Sumar los errores a propósito (enunciados 27 y 28) | `WITH_ERRORS=1 RESET_DB=1 docker compose run --rm init` |
 | Sumar las calibraciones de hoy (enunciado 31) | `WITH_TODAY=1 RESET_DB=1 docker compose run --rm init` |
 
-Volver a hacer `docker compose up` **no pisa** los datos que cargaste. Solo actualiza los procedimientos con lo que haya en `queries/crud`. Por eso, cuando un compañero cambia un procedimiento, los demás lo reciben corriendo `docker compose run --rm init`.
+Volver a hacer `docker compose up` **no pisa** los datos que cargaste. Solo actualiza los procedimientos, funciones, vistas, triggers, índices y roles con lo que haya en `queries/procedimientos`, `funciones`, `vistas`, `triggers`, `indices` y `seguridad`. Por eso, cuando un compañero cambia un procedimiento, los demás lo reciben corriendo `docker compose run --rm init`.
 
 ## Qué hay en la carpeta `queries`
 
-| Archivo o carpeta | Qué es |
+| Carpeta | Qué hay |
 |---|---|
-| `01` a `04` | Crean las tablas y cargan los datos de ejemplo: de junio de 2025 a octubre de 2026 |
-| `05_datos_con_errores.sql` | Opcional: errores a propósito para los enunciados 27 y 28 |
-| `06_calibraciones_de_hoy.sql` | Opcional: calibraciones con la fecha de hoy, para el enunciado 31 |
-| `07_limpiar_errores.sql` | Borra lo del 05 |
-| `crud/` | Los 35 procedimientos del CRUD, un archivo por tabla |
-| `objetos/` | Funciones, vistas, procedimientos de reporte, triggers, índices y roles |
+| `tablas/` | `01_crear_base_y_tablas.sql`: la base y las 7 tablas |
+| `datos/` | Los datos de ejemplo (de junio de 2025 a octubre de 2026), más dos scripts opcionales con errores a propósito (enunciados 27 y 28) y calibraciones de hoy (enunciado 31), y el que limpia los errores |
+| `procedimientos/` | `crud/`: los 35 procedimientos del CRUD, un archivo por tabla. `reportes.sql`: `usp_RankingBaristas` y `usp_ReporteLote` |
+| `funciones/` | Las 4 funciones |
+| `vistas/` | Las 4 vistas |
+| `triggers/` | Los 3 triggers: control de calibraciones, control de calificaciones y asignación automática de la calibración |
+| `indices/` | Los 7 índices |
+| `seguridad/` | Los 3 roles y sus permisos |
+| `consultas/` | `Queries.sql`: las consultas de cada uno |
 | `pruebas/` | `probar_crud.sql` y `probar_objetos.sql`: prueban todo, incluidos los errores, y no dejan datos |
-| `mantenimiento/backup_y_restauracion.sql` | Copia de seguridad y restauración |
-| `Queries.sql` | Espacio para las consultas de cada uno |
+| `mantenimiento/` | `backup_y_restauracion.sql`: copia de seguridad y restauración |
 | `inicializar.sh`, `cargar_cafetear.sh` | Scripts de carga (el segundo es para quien ya tiene su propio SQL Server en Docker) |
 
-Los archivos `01` a `07` y `crud/` **no se editan a mano**: los generan los programas de la carpeta `herramientas` (ver más abajo). Los de `objetos/` sí se editan a mano.
+Los archivos de `tablas/`, `datos/` y `procedimientos/crud/` **no se editan a mano**: los generan los programas de la carpeta `herramientas` (ver más abajo). Lo demás sí se edita a mano. El detalle del orden de ejecución está en [queries/README.md](queries/README.md).
 
 ## Regla del equipo: el CRUD va solo por procedimientos
 
@@ -90,6 +92,8 @@ Cada tabla tiene cinco procedimientos con el nombre `usp_<Tabla>_<Acción>`:
 | Cliente | `usp_Cliente_Crear`, `_Obtener`, `_Listar`, `_Actualizar`, `_Eliminar` |
 | Calibracion | `usp_Calibracion_Crear`, `_Obtener`, `_Listar`, `_Actualizar`, `_Eliminar` |
 | Calificacion | `usp_Calificacion_Crear`, `_Obtener`, `_Listar`, `_Actualizar`, `_Eliminar` |
+
+Al crear o actualizar una calificación no se informa la calibración: el cliente no la conoce, así que el procedimiento asigna la más próxima anterior a la fecha de la calificación.
 
 ### Cómo se usan
 
@@ -133,8 +137,8 @@ Los programas están en la carpeta `herramientas` y necesitan Python 3:
 
 | Programa | Qué genera |
 |---|---|
-| `python3 herramientas/generar_datos.py` | Los archivos `queries/01` a `07` y `queries/README.md` |
-| `python3 herramientas/generar_crud.py` | Los 35 procedimientos de `queries/crud` |
+| `python3 herramientas/generar_datos.py` | Los archivos de `queries/tablas`, `queries/datos` y `queries/README.md` |
+| `python3 herramientas/generar_crud.py` | Los 35 procedimientos de `queries/procedimientos/crud` |
 
 Los datos salen siempre iguales mientras no se toque el programa. Si alguien cambia algo y lo vuelve a generar, hay que avisar al equipo para que todos recarguen con `RESET_DB=1 docker compose run --rm init`.
 

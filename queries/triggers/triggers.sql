@@ -67,3 +67,27 @@ BEGIN
     END;
 END
 GO
+
+-- Asignación de calibración: el cliente no sabe qué calibración le tocó, así que se le asigna la más próxima anterior a su calificación.
+-- Vale para cualquier INSERT, aunque no pase por un procedimiento; si el insert trae un IDCalibracion, se reemplaza por el que corresponde.
+CREATE OR ALTER TRIGGER dbo.trg_Calificacion_AsignarCalibracion
+ON dbo.Calificacion
+INSTEAD OF INSERT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF EXISTS (SELECT 1
+               FROM inserted i
+               WHERE NOT EXISTS (SELECT 1 FROM Calibracion c WHERE c.fechaCalibracion <= i.fecha))
+        THROW 50023, N'No hay ninguna calibración anterior a esa fecha.', 1;
+
+    INSERT INTO Calificacion (IDCalificacion, fecha, puntaje, IDCliente, IDCalibracion)
+    SELECT i.IDCalificacion, i.fecha, i.puntaje, i.IDCliente, nearest.IDCalibracion
+    FROM inserted i
+    CROSS APPLY (SELECT TOP 1 c.IDCalibracion
+                 FROM Calibracion c
+                 WHERE c.fechaCalibracion <= i.fecha
+                 ORDER BY c.fechaCalibracion DESC, c.IDCalibracion DESC) nearest;
+END
+GO

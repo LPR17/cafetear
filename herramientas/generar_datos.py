@@ -416,11 +416,29 @@ def enforce_story_cases(calibrations, ratings, used_pairs):
             rating["score"] = min(rating["score"], 2)
 
     add_disagreements(calibrations, ratings, used_pairs)
+    fit_before_next_calibration(calibrations, ratings)
 
     ratings.sort(key=lambda r: (r["when"], r["client"]))
     for index, rating in enumerate(ratings, start=1):
         rating["id"] = index
     return last
+
+
+def fit_before_next_calibration(calibrations, ratings):
+    """El cliente no elige la calibracion: la calificacion queda asociada a la ultima anterior a su fecha.
+
+    Por eso cada reseña se acomoda entre su calibracion y la siguiente del local.
+    """
+    by_time = sorted(calibrations, key=lambda c: (c["when"], c["id"]))
+    position = {c["id"]: index for index, c in enumerate(by_time)}
+    for rating in ratings:
+        index = position[rating["calibration"]]
+        calibration = by_time[index]
+        following = by_time[index + 1:index + 2]
+        gap_seconds = (following[0]["when"] - calibration["when"]).total_seconds() if following else float("inf")
+        assert gap_seconds >= 120, "calibraciones demasiado juntas"
+        wanted_seconds = (rating["when"] - calibration["when"]).total_seconds()
+        rating["when"] = calibration["when"] + timedelta(seconds=min(wanted_seconds, gap_seconds - 60))
 
 
 def add_disagreements(calibrations, ratings, used_pairs):
@@ -460,7 +478,9 @@ def insert_statements(table, columns, rows):
 
 
 def write(name, content):
-    (OUT_DIR / name).write_text(content, encoding="utf-8")
+    path = OUT_DIR / name
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content, encoding="utf-8")
 
 
 HEADER = "-- Cafetear · {title}\n-- {note}\n\nUSE Cafetear;\nGO\nSET NOCOUNT ON;\n\n"
@@ -658,29 +678,33 @@ GO
 def readme_text(n_cal, n_rat):
     return f"""# Scripts de la base Cafetear
 
-Scripts en T-SQL (SQL Server) para crear la base, cargarla con datos de ejemplo y definir el CRUD. Todo es inventado.
+Scripts en T-SQL (SQL Server) para crear la base, cargarla con datos de ejemplo y definir sus objetos (procedimientos, funciones, vistas, triggers, índices y roles). Todo es inventado.
 
-Para levantar todo con Docker, mirá el [README de la carpeta de arriba](../README.md): `docker compose up -d` ejecuta estos scripts y los procedimientos de `crud/` solo.
+Para levantar todo con Docker, mirá el [README de la carpeta de arriba](../README.md): `docker compose up -d` ejecuta estos scripts en el orden correcto.
+
+## Qué hay en cada carpeta
 
 Para ejecutarlos a mano, en este orden:
 
-| Orden | Archivo | Qué hace |
+| Orden | Carpeta | Qué hay |
 |---|---|---|
-| 1 | `01_crear_base_y_tablas.sql` | Crea la base `Cafetear` y las 7 tablas. Borra lo que hubiera |
-| 2 | `02_datos_maestros.sql` | {len(PROVEEDORES)} proveedores, {len(GRANOS)} granos, {LOT_COUNT} lotes, {len(BARISTAS)} baristas y {CLIENT_COUNT} clientes |
-| 3 | `03_calibraciones.sql` | {n_cal} calibraciones entre junio de 2025 y octubre de 2026 |
-| 4 | `04_calificaciones.sql` | {n_rat} calificaciones de clientes |
-| 5 | `05_datos_con_errores.sql` | Opcional: errores a propósito para los enunciados 27 y 28 |
-| 6 | `06_calibraciones_de_hoy.sql` | Opcional: calibraciones con la fecha de hoy, para el enunciado 31 |
-| 7 | `07_limpiar_errores.sql` | Borra lo del paso 5. Correr antes de los enunciados 32 a 34 |
-| 8 | `crud/*.sql` | Los 35 procedimientos del CRUD (`usp_<Tabla>_Crear`, `_Obtener`, `_Listar`, `_Actualizar`, `_Eliminar`). Se pueden volver a ejecutar sin problema |
-| 9 | `objetos/*.sql` | 4 funciones, 4 vistas, 2 procedimientos de reporte, 2 triggers, 7 índices y 3 roles. Se pueden volver a ejecutar sin problema |
+| 1 | `tablas/` | `01_crear_base_y_tablas.sql`: crea la base `Cafetear` y las 7 tablas. Borra lo que hubiera |
+| 2 | `datos/` | `02_datos_maestros.sql`: {len(PROVEEDORES)} proveedores, {len(GRANOS)} granos, {LOT_COUNT} lotes, {len(BARISTAS)} baristas y {CLIENT_COUNT} clientes. `03_calibraciones.sql`: {n_cal} calibraciones entre junio de 2025 y octubre de 2026. `04_calificaciones.sql`: {n_rat} calificaciones. Opcionales: `05_datos_con_errores.sql` (errores a propósito para los enunciados 27 y 28), `06_calibraciones_de_hoy.sql` (enunciado 31) y `07_limpiar_errores.sql` (borra lo del 05; correr antes de los enunciados 32 a 34) |
+| 3 | `funciones/` | 4 funciones: relación de extracción, puntaje promedio de un lote, días desde el tostado y calibraciones de un barista |
+| 4 | `vistas/` | 4 vistas: puntaje por calibración, rendimiento por lote, mejor calibración por grano y calibraciones de hoy |
+| 5 | `procedimientos/` | `crud/`: los 35 procedimientos del CRUD, un archivo por tabla (`usp_<Tabla>_Crear`, `_Obtener`, `_Listar`, `_Actualizar`, `_Eliminar`). `reportes.sql`: `usp_RankingBaristas` y `usp_ReporteLote` |
+| 6 | `triggers/` | 3 triggers: control de calibraciones, control de calificaciones y asignación automática de la calibración |
+| 7 | `indices/` | 7 índices sobre claves foráneas y fechas |
+| 8 | `seguridad/` | 3 roles (barista, analista, administrador) con sus permisos |
+| — | `consultas/` | `Queries.sql`: las consultas de cada integrante |
+| — | `pruebas/` | `probar_crud.sql` y `probar_objetos.sql`: prueban todo, incluidos los casos de error, y no dejan datos |
+| — | `mantenimiento/` | `backup_y_restauracion.sql`: hace y verifica una copia de seguridad |
 
-`pruebas/probar_crud.sql` y `pruebas/probar_objetos.sql` prueban los procedimientos, las funciones, las vistas, los triggers y los permisos, incluidos los casos de error, y no dejan datos. `mantenimiento/backup_y_restauracion.sql` hace y verifica una copia de seguridad. Los scripts `inicializar.sh` y `cargar_cafetear.sh` hacen toda la carga automáticamente.
+Los scripts `inicializar.sh` y `cargar_cafetear.sh` hacen toda la carga automáticamente. Los scripts de funciones, vistas, procedimientos, triggers, índices y roles se pueden volver a ejecutar sin problema.
 
-Los triggers se crean después de cargar los datos. Por eso `05_datos_con_errores.sql` solo se puede correr si los triggers todavía no existen: usá la carga con `--con-errores`, que lo hace en el orden correcto.
+Los triggers se crean después de cargar los datos. Por eso `datos/05_datos_con_errores.sql` solo se puede correr si los triggers todavía no existen: usá la carga con `--con-errores`, que lo hace en el orden correcto.
 
-Los archivos 01 a 07 los genera `../herramientas/generar_datos.py`: no se editan a mano. Los datos son siempre los mismos, así que todo el equipo ve lo mismo.
+Los archivos de `tablas/` y `datos/` y los de `procedimientos/crud/` los generan los programas de `../herramientas/`: no se editan a mano. Los datos son siempre los mismos, así que todo el equipo ve lo mismo.
 
 ## Qué historia cuentan los datos
 
@@ -713,6 +737,7 @@ def verify(calibrations, ratings, used_pairs, last_bad):
     assert all(lot_by_id(c["lot"])[3] <= c["when"].date() for c in calibrations), "calibracion antes del ingreso"
     cal_when = {c["id"]: c["when"] for c in calibrations}
     assert all(r["when"] > cal_when[r["calibration"]] for r in ratings), "calificacion antes de la calibracion"
+    assert all(nearest_calibration_id(calibrations, r["when"]) == r["calibration"] for r in ratings), "calibracion no es la mas proxima"
     pairs = [(r["client"], r["calibration"]) for r in ratings]
     assert len(pairs) == len(set(pairs)), "calificaciones duplicadas"
     assert all(1 <= r["score"] <= 5 for r in ratings)
@@ -733,6 +758,11 @@ def verify(calibrations, ratings, used_pairs, last_bad):
         assert rated == {b[0] for b in BARISTAS}, f"cliente {client} no califico a todos"
     verify_volume_and_stories(calibrations, ratings, cal_by_id)
     verify_variety(calibrations, ratings, cal_by_id)
+
+
+def nearest_calibration_id(calibrations, moment):
+    """La misma regla que usa el procedimiento: la ultima calibracion anterior a la fecha (si empatan, la de ID mayor)."""
+    return max((c for c in calibrations if c["when"] <= moment), key=lambda c: (c["when"], c["id"]))["id"]
 
 
 def verify_coverage(calibrations):
@@ -826,15 +856,15 @@ def generate_valid_dataset():
 def main():
     seed, clients, calibrations, ratings = generate_valid_dataset()
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    write("01_crear_base_y_tablas.sql", DDL)
-    write("02_datos_maestros.sql", master_sql(clients))
-    write("03_calibraciones.sql",
+    write("tablas/01_crear_base_y_tablas.sql", DDL)
+    write("datos/02_datos_maestros.sql", master_sql(clients))
+    write("datos/03_calibraciones.sql",
           HEADER.format(title="Calibraciones", note="Ejecutar después de 02.") + insert_statements("Calibracion", CAL_COLUMNS, calibration_rows(calibrations)))
-    write("04_calificaciones.sql",
+    write("datos/04_calificaciones.sql",
           HEADER.format(title="Calificaciones", note="Ejecutar después de 03.") + insert_statements("Calificacion", RAT_COLUMNS, rating_rows(ratings)))
-    write("05_datos_con_errores.sql", anomalies_sql(calibrations, ratings))
-    write("06_calibraciones_de_hoy.sql", today_sql())
-    write("07_limpiar_errores.sql", CLEAN_SQL)
+    write("datos/05_datos_con_errores.sql", anomalies_sql(calibrations, ratings))
+    write("datos/06_calibraciones_de_hoy.sql", today_sql())
+    write("datos/07_limpiar_errores.sql", CLEAN_SQL)
     write("README.md", readme_text(len(calibrations), len(ratings)))
     print(f"semilla={seed} calibraciones={len(calibrations)} calificaciones={len(ratings)} clientes={len(clients)}")
 

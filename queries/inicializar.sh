@@ -55,27 +55,30 @@ database_is_initialized() {
 }
 
 load_data() {
-  run_file "$SCRIPTS_DIR/01_crear_base_y_tablas.sql"
-  run_file "$SCRIPTS_DIR/02_datos_maestros.sql"
-  run_file "$SCRIPTS_DIR/03_calibraciones.sql"
-  run_file "$SCRIPTS_DIR/04_calificaciones.sql"
-  [ "$with_errors" = "1" ] && run_file "$SCRIPTS_DIR/05_datos_con_errores.sql"
-  [ "$with_today" = "1" ] && run_file "$SCRIPTS_DIR/06_calibraciones_de_hoy.sql"
+  run_file "$SCRIPTS_DIR/tablas/01_crear_base_y_tablas.sql"
+  run_file "$SCRIPTS_DIR/datos/02_datos_maestros.sql"
+  run_file "$SCRIPTS_DIR/datos/03_calibraciones.sql"
+  run_file "$SCRIPTS_DIR/datos/04_calificaciones.sql"
+  [ "$with_errors" = "1" ] && run_file "$SCRIPTS_DIR/datos/05_datos_con_errores.sql"
+  [ "$with_today" = "1" ] && run_file "$SCRIPTS_DIR/datos/06_calibraciones_de_hoy.sql"
   return 0
 }
 
-load_procedures() {
+run_folder() {
   local file
-  for file in "$SCRIPTS_DIR"/crud/*.sql; do
+  for file in "$SCRIPTS_DIR/$1"/*.sql; do
     run_file "$file"
   done
 }
 
 load_objects() {
-  local file
-  for file in "$SCRIPTS_DIR"/objetos/*.sql; do
-    run_file "$file"
-  done
+  run_folder funciones
+  run_folder vistas
+  run_folder procedimientos/crud
+  run_folder procedimientos
+  run_folder triggers
+  run_folder indices
+  run_folder seguridad
 }
 
 print_summary() {
@@ -103,9 +106,7 @@ main() {
   else
     echo "La base Cafetear ya existe: no se tocan los datos (usá --reset para empezar de cero)."
   fi
-  echo "Actualizando procedimientos almacenados..."
-  load_procedures
-  echo "Actualizando funciones, vistas, triggers, índices y roles..."
+  echo "Actualizando funciones, vistas, procedimientos, triggers, índices y roles..."
   load_objects
   print_summary
 }
