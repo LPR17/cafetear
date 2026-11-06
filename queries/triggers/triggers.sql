@@ -2,12 +2,12 @@
 -- Aplican las reglas de negocio en la propia base: valen aunque alguien inserte sin pasar por un procedimiento.
 -- Se crean después de cargar los datos, así que no afectan a la carga inicial.
 
-USE Cafetear;
+USE cafetear;
 GO
 
 -- Control de calificaciones: puntaje de 1 a 5, no anterior a la calibración y una sola por cliente y calibración.
-CREATE OR ALTER TRIGGER dbo.trg_Calificacion_Control
-ON dbo.Calificacion
+CREATE OR ALTER TRIGGER dbo.trgCalificacionControl
+ON dbo.calificacion
 AFTER INSERT, UPDATE
 AS
 BEGIN
@@ -21,7 +21,7 @@ BEGIN
 
     IF EXISTS (SELECT 1
                FROM inserted i
-               JOIN Calibracion c ON c.IDCalibracion = i.IDCalibracion
+               JOIN calibracion c ON c.idCalibracion = i.idCalibracion
                WHERE i.fecha < c.fechaCalibracion)
     BEGIN
         ROLLBACK TRANSACTION;
@@ -29,9 +29,9 @@ BEGIN
     END;
 
     IF EXISTS (SELECT 1
-               FROM Calificacion k
-               JOIN inserted i ON i.IDCliente = k.IDCliente AND i.IDCalibracion = k.IDCalibracion
-               GROUP BY k.IDCliente, k.IDCalibracion
+               FROM calificacion k
+               JOIN inserted i ON i.idCliente = k.idCliente AND i.idCalibracion = k.idCalibracion
+               GROUP BY k.idCliente, k.idCalibracion
                HAVING COUNT(*) > 1)
     BEGIN
         ROLLBACK TRANSACTION;
@@ -41,9 +41,9 @@ END
 GO
 
 -- Asignación de calibración: el cliente no sabe qué calibración le tocó, así que se le asigna la más próxima anterior a su calificación.
--- Vale para cualquier INSERT, aunque no pase por un procedimiento; si el insert trae un IDCalibracion, se reemplaza por el que corresponde.
-CREATE OR ALTER TRIGGER dbo.trg_Calificacion_AsignarCalibracion
-ON dbo.Calificacion
+-- Vale para cualquier INSERT, aunque no pase por un procedimiento; si el insert trae un idCalibracion, se reemplaza por el que corresponde.
+CREATE OR ALTER TRIGGER dbo.trgCalificacionAsignarCalibracion
+ON dbo.calificacion
 INSTEAD OF INSERT
 AS
 BEGIN
@@ -51,15 +51,15 @@ BEGIN
 
     IF EXISTS (SELECT 1
                FROM inserted i
-               WHERE NOT EXISTS (SELECT 1 FROM Calibracion c WHERE c.fechaCalibracion <= i.fecha))
+               WHERE NOT EXISTS (SELECT 1 FROM calibracion c WHERE c.fechaCalibracion <= i.fecha))
         THROW 50023, N'No hay ninguna calibración anterior a esa fecha.', 1;
 
-    INSERT INTO Calificacion (IDCalificacion, fecha, puntaje, IDCliente, IDCalibracion)
-    SELECT i.IDCalificacion, i.fecha, i.puntaje, i.IDCliente, nearest.IDCalibracion
+    INSERT INTO calificacion (idCalificacion, fecha, puntaje, idCliente, idCalibracion)
+    SELECT i.idCalificacion, i.fecha, i.puntaje, i.idCliente, nearest.idCalibracion
     FROM inserted i
-    CROSS APPLY (SELECT TOP 1 c.IDCalibracion
-                 FROM Calibracion c
+    CROSS APPLY (SELECT TOP 1 c.idCalibracion
+                 FROM calibracion c
                  WHERE c.fechaCalibracion <= i.fecha
-                 ORDER BY c.fechaCalibracion DESC, c.IDCalibracion DESC) nearest;
+                 ORDER BY c.fechaCalibracion DESC, c.idCalibracion DESC) nearest;
 END
 GO

@@ -5,7 +5,7 @@ USE Cafetear;
 GO
 SET NOCOUNT ON;
 
-INSERT INTO Calibracion (IDCalibracion, fechaCalibracion, dosis, tiempoExtraccion, rendimiento, IDBarista, IDLote) VALUES
+INSERT INTO calibracion (idCalibracion, fechaCalibracion, dosis, tiempoExtraccion, rendimiento, idBarista, idLote) VALUES
     (1, '2025-06-20T08:01:00', 19.5, 31, 45.6, 1, 1),
     (2, '2025-06-20T08:21:00', 20.5, 23, 39.4, 1, 1),
     (3, '2025-06-20T08:32:00', 20.0, 26, 38.9, 1, 1),

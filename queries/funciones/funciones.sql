@@ -1,10 +1,10 @@
 -- Cafetear · Función
 
-USE Cafetear;
+USE cafetear;
 GO
 
 -- Relación de extracción: gramos de café en la taza por cada gramo de café molido. Con 18 g y 36 g da 2,00 (1:2).
-CREATE OR ALTER FUNCTION dbo.fn_RelacionExtraccion (@dosis DECIMAL(5,1), @rendimiento DECIMAL(5,1))
+CREATE OR ALTER FUNCTION dbo.fnRelacionExtraccion (@dosis DECIMAL(5,1), @rendimiento DECIMAL(5,1))
 RETURNS DECIMAL(5,2)
 AS
 BEGIN

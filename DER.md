@@ -2,76 +2,76 @@
 
 ```mermaid
 erDiagram
-    PROVEEDOR {
-        int IDProveedor PK
-        string CUIT UK
+    proveedor {
+        int idProveedor PK
+        string cuit
         string razonSocial
     }
-    GRANO {
-        int IDGrano PK
+    grano {
+        int idGrano PK
         int alturaCosecha
         string regionCosecha
         date fechaCosecha
     }
-    LOTE {
-        int IDLote PK
-        int IDGrano FK
-        int IDProveedor FK
+    lote {
+        int idLote PK
+        int idGrano FK
+        int idProveedor FK
         date fechaIngreso
         date fechaTostado
         decimal cantidadKg
     }
-    BARISTA {
-        int IDBarista PK
-        string DNI UK
+    barista {
+        int idBarista PK
+        string dni
         string nombre
         string apellido
         int experiencia
     }
-    CALIBRACION {
-        int IDCalibracion PK
+    calibracion {
+        int idCalibracion PK
         datetime fechaCalibracion
         decimal dosis
         int tiempoExtraccion
         decimal rendimiento
-        int IDBarista FK
-        int IDLote FK
+        int idBarista FK
+        int idLote FK
     }
-    CLIENTE {
-        int IDCliente PK
-        string DNI UK
+    cliente {
+        int idCliente PK
+        string dni
         string nombre
         string apellido
     }
-    CALIFICACION {
-        int IDCalificacion PK
+    calificacion {
+        int idCalificacion PK
         datetime fecha
         int puntaje
-        int IDCliente FK
-        int IDCalibracion FK
+        int idCliente FK
+        int idCalibracion FK
     }
 
-    PROVEEDOR ||--o{ LOTE : provee
-    GRANO ||--o{ LOTE : "se compra en"
-    LOTE ||--o{ CALIBRACION : "se usa en"
-    BARISTA ||--o{ CALIBRACION : realiza
-    CALIBRACION ||--o{ CALIFICACION : recibe
-    CLIENTE ||--o{ CALIFICACION : deja
+    proveedor ||--o{ lote : provee
+    grano ||--o{ lote : "se compra en"
+    lote ||--o{ calibracion : "se usa en"
+    barista ||--o{ calibracion : realiza
+    calibracion ||--o{ calificacion : recibe
+    cliente ||--o{ calificacion : deja
 ```
 
 ## Modelo relacional
 
 ```
-Proveedor (IDProveedor PK IDENTITY, CUIT UNIQUE NOT NULL, razonSocial)
-Grano (IDGrano PK, alturaCosecha, regionCosecha, fechaCosecha)
-Lote (IDLote PK, IDGrano FK, IDProveedor FK, fechaIngreso, fechaTostado, cantidadKg)
-Barista (IDBarista PK IDENTITY, DNI UNIQUE NOT NULL, nombre, apellido, experiencia)
-Calibracion (IDCalibracion PK, fechaCalibracion, dosis, tiempoExtraccion, rendimiento, IDBarista FK, IDLote FK)
-Cliente (IDCliente PK IDENTITY, DNI UNIQUE NOT NULL, nombre, apellido)
-Calificacion (IDCalificacion PK, fecha, puntaje, IDCliente FK, IDCalibracion FK)
+proveedor (idProveedor PK IDENTITY, cuit UNIQUE NOT NULL, razonSocial)
+grano (idGrano PK, alturaCosecha, regionCosecha, fechaCosecha)
+lote (idLote PK, idGrano FK, idProveedor FK, fechaIngreso, fechaTostado, cantidadKg)
+barista (idBarista PK IDENTITY, dni UNIQUE NOT NULL, nombre, apellido, experiencia)
+calibracion (idCalibracion PK, fechaCalibracion, dosis, tiempoExtraccion, rendimiento, idBarista FK, idLote FK)
+cliente (idCliente PK IDENTITY, dni UNIQUE NOT NULL, nombre, apellido)
+calificacion (idCalificacion PK, fecha, puntaje, idCliente FK, idCalibracion FK)
 ```
 
-## Unidades de Calibracion
+## Unidades de calibracion
 
 - `dosis`: gramos de café molido.
 - `tiempoExtraccion`: segundos.
