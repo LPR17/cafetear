@@ -33,6 +33,8 @@ Cada archivo `.sql` empieza con `USE cafetear;`, así que siempre trabaja sobre 
 
 El detalle del orden de ejecución y de los datos está en [queries/README.md](queries/README.md).
 
+Fuera de `queries/` están el informe del trabajo (`informe/`, con el DER) y los materiales de la propuesta y la presentación (`propuesta/`).
+
 **Importante:** `Cafetear_completo.sql` es un archivo fijo que repite lo que hay en las carpetas. Si cambiás un script de una carpeta (por ejemplo un trigger), hacé el mismo cambio en el instalador. Está guardado en UTF-16, que es el formato que SSMS y `sqlcmd` leen bien con los acentos; GitHub no los muestra como texto, así que conviene descargarlo o abrirlo en SSMS y guardarlo con la misma codificación.
 
 ## Procedimientos y reglas del negocio
