@@ -28,7 +28,7 @@ Cada archivo `.sql` empieza con `USE cafetear;`, así que siempre trabaja sobre 
 | `procedimientos/` | `uspCalibracionCrear`, `uspCalificacionCrear` y `uspRankingBaristas` |
 | `triggers/` | `trgCalificacionControl` (puntaje de 1 a 5, no anterior a la calibración, una por cliente) y `trgCalificacionAsignarCalibracion` (asigna la calibración más próxima) |
 | `seguridad/` | `roles.sql`: los 2 roles, barista (registra calibraciones y calificaciones) y dueños (ven todo y ejecutan todo). `respaldo.sql`: copia de seguridad y su verificación |
-| `consultas/` | `Queries.sql`: las consultas de cada uno |
+| `consultas/` | `Queries.sql`: las 10 consultas del equipo, sin comentarios y separadas por su número. `explicacion_consultas.txt`: qué datos muestra cada una, para qué sirve y un ejemplo de resultado |
 | `pruebas/` | `probar_todo.sql`: prueba todo, incluidos los errores. `verificar_carga.sql`: comprueba que la carga quedó completa (la ejecuta el instalador al final) |
 
 El detalle del orden de ejecución y de los datos está en [queries/README.md](queries/README.md).

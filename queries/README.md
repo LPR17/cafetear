@@ -17,7 +17,7 @@ Para ejecutarlos de a uno, en este orden:
 | 5 | `procedimientos/` | 3 procedimientos: crear calibración, crear calificación y ranking de baristas |
 | 6 | `triggers/` | 2 triggers: control de calificaciones y asignación automática de la calibración |
 | 7 | `seguridad/` | `roles.sql`: 2 roles, barista (registra calibraciones y calificaciones) y dueños (ven todo y ejecutan todo). `respaldo.sql`: copia de seguridad y su verificación |
-| — | `consultas/` | `Queries.sql`: las consultas de cada integrante |
+| — | `consultas/` | `Queries.sql`: las 10 consultas del equipo, sin comentarios y separadas por su número. `explicacion_consultas.txt`: qué datos muestra cada una |
 | — | `pruebas/` | `probar_todo.sql`: prueba todo, incluidos los casos de error, y no deja datos. `verificar_carga.sql`: comprueba que la carga quedó completa, con un OK o ERROR por control |
 | — | `instalador/` | `Cafetear_completo.sql`: todo en un solo archivo, se ejecuta con F5 en SSMS y verifica la carga al final |
 

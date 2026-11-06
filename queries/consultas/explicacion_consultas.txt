@@ -1,0 +1,204 @@
+CONSULTAS DE CAFETEAR - QUÉ MUESTRA CADA UNA
+============================================================
+Las consultas están en Queries.sql, sin comentarios, separadas por una línea con su número (la misma numeración que acá).
+Para cada una: la pregunta (comentario original), qué data muestra, para qué sirve y un ejemplo real de resultado.
+Los resultados de ejemplo salen de la base cargada con Cafetear_completo.sql. Las consultas 6 y 8 dependen de la fecha de hoy.
+
+------------------------------------------------------------
+CONSULTA 1: Lotes de café que dejan mal parada la calidad.
+------------------------------------------------------------
+Comentario original:
+  1) Lotes con puntaje promedio menor a 3,5: cantidad de calibraciones, gramos usados y puntaje promedio.
+
+Qué muestra:
+  Una fila por cada lote cuyo puntaje promedio es menor a 3,5. nombre es el lote; cantidadCalibraciones es cuántas calibraciones se hicieron con él; gramosTotalesUsados es la suma de los gramos de café molido de esas calibraciones; puntajePromedio es el promedio de todas las calificaciones que recibió.
+
+Para qué sirve:
+  Sirve para decidir qué lotes (y a qué proveedor) conviene revisar o dejar de pedir.
+
+Filas que devuelve: 16
+Columnas: nombre | cantidadCalibraciones | gramosTotalesUsados | puntajePromedio
+
+Ejemplo (primeras filas):
+  Guji Natural Lote 7 | 28 | 510.9 | 3.04
+  Fazenda Boa Vista Natural | 9 | 174.3 | 2.92
+  La Unión Lavado | 10 | 167.2 | 2.69
+
+------------------------------------------------------------
+CONSULTA 2: Evolución de la calidad mes a mes.
+------------------------------------------------------------
+Comentario original:
+  2) Puntaje promedio y cantidad de calificaciones de cada mes.
+
+Qué muestra:
+  Una fila por mes y año. mesAnio se lee como mes/año (6/2025 es junio de 2025); calificacionPromedio es el puntaje medio de ese mes y cantidadCalificaciones cuántas opiniones hubo. El promedio se calcula con puntaje * 1.0 para conservar los decimales. El resultado se ordena primero por mes y después por año, así queda cada mes junto al mismo mes del año siguiente (6/2025 y 6/2026).
+
+Para qué sirve:
+  Muestra cómo va la calidad en el tiempo: el bajón fuerte de diciembre de 2025 (promedio 1,44) y el de junio de 2026 (2,69), y que los meses de 2026 son en general mejores que los de 2025.
+
+Filas que devuelve: 17
+Columnas: mesAnio | calificacionPromedio | cantidadCalificaciones
+
+Ejemplo (primeras filas):
+  1/2026 | 3.48 | 21
+  2/2026 | 3.93 | 14
+  3/2026 | 3.65 | 23
+
+------------------------------------------------------------
+CONSULTA 3: Cómo cambia el puntaje según la frescura del café.
+------------------------------------------------------------
+Comentario original:
+  3) Puntaje promedio según las semanas transcurridas desde el tostado, por grano y proveedor.
+
+Qué muestra:
+  Una fila por grano, proveedor y semana desde el tostado. semanasDesdeTostado son los días entre el tostado del lote y la calibración, divididos por 7 (0 = primera semana). Se muestra el puntajePromedio de esa combinación y cuántas calificaciones la respaldan.
+
+Para qué sirve:
+  Sirve para ver si el café rinde mejor en las primeras semanas después del tostado y cuándo empieza a caer. Es la consulta con más filas porque abre por grano, proveedor y semana.
+
+Filas que devuelve: 72
+Columnas: idGrano | grano | proveedor | semanasDesdeTostado | puntajePromedio | cantidadCalificaciones
+
+Ejemplo (primeras filas):
+  1 | Huila, Colombia | Brasil Café Trading S.R.L. | 2 | 5.00 | 5
+  1 | Huila, Colombia | Brasil Café Trading S.R.L. | 10 | 3.00 | 3
+  1 | Huila, Colombia | Café Andino S.R.L. | 4 | 3.67 | 3
+
+------------------------------------------------------------
+CONSULTA 4: La mejor receta (calibración) de cada grano según cada proveedor.
+------------------------------------------------------------
+Comentario original:
+  4) Para cada grano y proveedor, la calibración con mayor calificación promedio.
+  Se exigen al menos 3 calificaciones; si hay empate gana la que tiene más calificaciones y, si siguen
+  empatadas, la más antigua. Usa la vista vwPuntajePorCalibracion (queries/vistas/vistas.sql).
+
+Qué muestra:
+  Una sola fila por grano y proveedor: la calibración ganadora. Trae su dosis (gramos de café molido), tiempoExtraccion (segundos), rendimiento (gramos en la taza), puntajePromedio y la cantidad de calificaciones. Se exigen al menos 3 calificaciones; si hay empate gana la que tiene más calificaciones y, si siguen empatadas, la más antigua. Usa la vista vwPuntajePorCalibracion.
+
+Para qué sirve:
+  Es la receta de referencia: con qué dosis, tiempo y rendimiento arrancar cuando llega un lote nuevo de ese grano y proveedor.
+
+Filas que devuelve: 29
+Columnas: grano | proveedor | idCalibracion | dosis | tiempoExtraccion | rendimiento | puntajePromedio | calificaciones
+
+Ejemplo (primeras filas):
+  Antigua, Guatemala | Importadora Tierra Alta S.R.L. | 117 | 20.6 | 29 | 42.5 | 3.75 | 4
+  Antigua, Guatemala | Origen Colombia Import S.A. | 202 | 19.7 | 30 | 36.9 | 4.14 | 7
+  Antigua, Guatemala | Sidamo Importaciones S.R.L. | 153 | 18.3 | 26 | 39.3 | 4.57 | 7
+
+------------------------------------------------------------
+CONSULTA 5: Proveedor que entrega el mejor café según los clientes.
+------------------------------------------------------------
+Comentario original:
+  5) Proveedor con mejor café (con más de 5 calificaciones).
+
+Qué muestra:
+  Una sola fila: el proveedor con el puntaje promedio más alto, considerando solo proveedores con más de 5 calificaciones (para que el promedio sea confiable). Muestra idProveedor, razonSocial y puntajePromedio.
+
+Para qué sirve:
+  Sirve para decidir a quién renovarle el pedido.
+
+Filas que devuelve: 1
+Columnas: idProveedor | razonSocial | puntajePromedio
+
+Ejemplo (primeras filas):
+  4 | Origen Colombia Import S.A. | 3.97
+
+------------------------------------------------------------
+CONSULTA 6: Clientes que se alejaron.
+------------------------------------------------------------
+Comentario original:
+  6) Clientes que calificaron alguna vez y no calificaron en los últimos 90 días.
+
+Qué muestra:
+  Una fila por cliente (nombre completo y DNI) que calificó alguna vez pero cuya última calificación fue hace más de 90 días respecto de hoy.
+
+Para qué sirve:
+  Sirve para fidelización: contactar a esos clientes. DEPENDE DE LA FECHA DE HOY: si se ejecuta otro día, cambia la lista.
+
+Filas que devuelve: 16
+Columnas: nombreCliente | dni
+
+Ejemplo (primeras filas):
+  Tamara Medina | 29319477
+  Ximena Torres | 33077687
+  Santiago Álvarez | 31669149
+
+------------------------------------------------------------
+CONSULTA 7: Calidad según el día de la semana.
+------------------------------------------------------------
+Comentario original:
+  7) Calidad por día de la semana.
+
+Qué muestra:
+  Una fila por día con calificaciones: diaDeLaSemana y calificacionPromedio. Aparecen de lunes a sábado (no hay calificaciones los domingos). El nombre del día sale en el idioma del servidor (inglés o español).
+
+Para qué sirve:
+  Muestra que los lunes puntúan peor y los viernes mejor, para reforzar personal o supervisión esos días.
+
+Filas que devuelve: 6
+Columnas: diaDeLaSemana | calificacionPromedio
+
+Ejemplo (primeras filas):
+  Monday | 2.78
+  Tuesday | 3.00
+  Wednesday | 3.33
+
+------------------------------------------------------------
+CONSULTA 8: Lotes que empeoran.
+------------------------------------------------------------
+Comentario original:
+  8) Lotes cuya calificación promedio del último mes es menor a la del mes anterior.
+
+Qué muestra:
+  Una fila por lote cuyo promedio del último mes calendario es menor al del mes anterior. Muestra promedioUltimoMes, promedioMesAnterior y calificacionesUltimoMes. Solo entran lotes con calificaciones en el último mes.
+
+Para qué sirve:
+  Sirve de alerta temprana: un lote que empieza a bajar. DEPENDE DE LA FECHA DE HOY: el "último mes" es el mes calendario anterior al actual.
+
+Filas que devuelve: 2
+Columnas: idLote | lote | promedioUltimoMes | promedioMesAnterior | calificacionesUltimoMes
+
+Ejemplo (primeras filas):
+  37 | São João Natural | 2.79 | 3.33 | 14
+  36 | Boa Esperança Honey | 2.80 | 4.00 | 5
+
+------------------------------------------------------------
+CONSULTA 9: Consistencia de cada lote.
+------------------------------------------------------------
+Comentario original:
+  9) Diferencia entre la mejor y la peor calificación de cada lote (para evaluar consistencia).
+
+Qué muestra:
+  Una fila por lote con al menos 3 calificaciones: peorPuntaje, mejorPuntaje, diferencia entre ambos, puntajePromedio y cantidad. Se ordena de mayor a menor diferencia.
+
+Para qué sirve:
+  Una diferencia de 4 (de 1 a 5) indica un lote que divide opiniones o cuyo resultado depende de quién lo prepara o lo prueba.
+
+Filas que devuelve: 31
+Columnas: lote | proveedor | peorPuntaje | mejorPuntaje | diferencia | puntajePromedio | cantidadCalificaciones
+
+Ejemplo (primeras filas):
+  Guji Natural Lote 7 | Finca Los Altos S.A. | 1 | 5 | 4 | 3.04 | 27
+  Fazenda Boa Vista Natural | Brasil Café Trading S.R.L. | 1 | 5 | 4 | 2.92 | 13
+  La Unión Lavado | Importadora Tierra Alta S.R.L. | 1 | 5 | 4 | 2.69 | 13
+
+------------------------------------------------------------
+CONSULTA 10: Tiempos de extracción que mejor funcionan.
+------------------------------------------------------------
+Comentario original:
+  10) Top 5 tiempos de extracción con mejor calificación promedio.
+
+Qué muestra:
+  Las 5 filas con mejor puntajePromedio por tiempo de extracción (tiempoSeg, en segundos), con al menos 5 calificaciones. Muestra cuántas calificaciones y cuántas calibraciones distintas usaron ese tiempo.
+
+Para qué sirve:
+  Sirve para saber en qué rango de tiempo conviene extraer (los mejores promedios rondan los 26 a 30 segundos).
+
+Filas que devuelve: 5
+Columnas: tiempoSeg | puntajePromedio | cantidadCalificaciones | cantidadCalibraciones
+
+Ejemplo (primeras filas):
+  26 | 4.05 | 21 | 5
+  29 | 3.83 | 53 | 11
+  27 | 3.76 | 17 | 5
