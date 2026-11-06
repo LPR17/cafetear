@@ -69,7 +69,7 @@ El resto lo resuelve la propia tabla, con mensajes de SQL Server: tipos de dato,
 
 | Problema | Solución |
 |---|---|
-| `Invalid object name 'lote'` al ejecutar una consulta | Estás en otra base (por ejemplo `master`). Elegí `cafetear` en el selector o ejecutá `USE cafetear;` |
+| `Invalid object name 'Lote'` al ejecutar una consulta | Estás en otra base (por ejemplo `master`). Elegí `cafetear` en el selector o ejecutá `USE cafetear;` |
 | Los acentos se ven mal, o la verificación dice que no se cargaron bien | Abriste el instalador y lo guardaste con otra codificación. Volvé a bajarlo y guardalo como Unicode (UTF-16) |
 | Algún control de la verificación dice `ERROR` | La base tiene datos u objetos de otra versión. Borrá la base `cafetear` y volvé a ejecutar `Cafetear_completo.sql` |
 | Los nombres de los días salen en español | Es normal en un servidor en español. Solo cambia el idioma, no los resultados |

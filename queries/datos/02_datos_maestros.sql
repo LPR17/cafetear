@@ -8,7 +8,7 @@ SET NOCOUNT ON;
 
 -- Proveedor (los CUIT son inventados)
 
-INSERT INTO proveedor (cuit, razonSocial) VALUES
+INSERT INTO Proveedor (cuit, razonSocial) VALUES
     ('30-71458230-4', 'Café Andino S.R.L.'),
     ('30-70912345-1', 'Tostadores del Sur S.A.'),
     ('30-71203344-7', 'Finca Los Altos S.A.'),
@@ -23,7 +23,7 @@ INSERT INTO proveedor (cuit, razonSocial) VALUES
 
 -- Grano: el tipo de café y su origen
 
-INSERT INTO grano (idGrano, alturaCosecha, regionCosecha, fechaCosecha) VALUES
+INSERT INTO Grano (idGrano, alturaCosecha, regionCosecha, fechaCosecha) VALUES
     (1, 1800, 'Huila, Colombia', '2025-01-20'),
     (2, 1100, 'Cerrado Mineiro, Brasil', '2025-03-10'),
     (3, 2000, 'Yirgacheffe, Etiopía', '2025-02-05'),
@@ -38,7 +38,7 @@ INSERT INTO grano (idGrano, alturaCosecha, regionCosecha, fechaCosecha) VALUES
 
 -- Lote: una bolsa concreta de café, con su nombre (el lote 40 queda sin calibrar a propósito)
 
-INSERT INTO lote (idLote, nombre, idGrano, idProveedor, fechaIngreso, fechaTostado, cantidadKg) VALUES
+INSERT INTO Lote (idLote, nombre, idGrano, idProveedor, fechaIngreso, fechaTostado, cantidadKg) VALUES
     (1, 'La Esperanza Lavado', 1, 1, '2025-05-20', '2025-05-17', 6.00),
     (2, 'Finca Los Volcanes Lavado', 4, 2, '2025-06-02', '2025-05-25', 8.00),
     (3, 'Guji Natural Lote 7', 7, 3, '2025-06-15', '2025-06-08', 10.00),
@@ -83,7 +83,7 @@ INSERT INTO lote (idLote, nombre, idGrano, idProveedor, fechaIngreso, fechaTosta
 
 -- Barista (IDENTITY: los IDs salen 1 a 7 si la tabla estaba vacía)
 
-INSERT INTO barista (dni, nombre, apellido, experiencia) VALUES
+INSERT INTO Barista (dni, nombre, apellido, experiencia) VALUES
     ('28450121', 'Martina', 'Ríos', 8),
     ('31220987', 'Lucas', 'Benítez', 5),
     ('36874512', 'Sofía', 'Carrizo', 3),
@@ -98,7 +98,7 @@ INSERT INTO barista (dni, nombre, apellido, experiencia) VALUES
 
 -- Cliente (IDENTITY: los IDs salen 1 a 60 si la tabla estaba vacía)
 
-INSERT INTO cliente (dni, nombre, apellido) VALUES
+INSERT INTO Cliente (dni, nombre, apellido) VALUES
     ('34259659', 'Daniela', 'Pérez'),
     ('32118183', 'Carolina', 'Sánchez'),
     ('36604773', 'Romina', 'Romero'),

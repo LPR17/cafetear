@@ -5,7 +5,7 @@ USE Cafetear;
 GO
 SET NOCOUNT ON;
 
-INSERT INTO calificacion (idCalificacion, fecha, puntaje, idCliente, idCalibracion) VALUES
+INSERT INTO Calificacion (idCalificacion, fecha, puntaje, idCliente, idCalibracion) VALUES
     (1, '2025-06-20T10:11:00', 4, 4, 4),
     (2, '2025-06-20T11:04:00', 4, 1, 4),
     (3, '2025-06-20T12:29:00', 3, 8, 4),
@@ -257,7 +257,7 @@ INSERT INTO calificacion (idCalificacion, fecha, puntaje, idCliente, idCalibraci
     (249, '2026-07-31T07:56:00', 4, 2, 184),
     (250, '2026-07-31T08:45:00', 4, 5, 184);
 
-INSERT INTO calificacion (idCalificacion, fecha, puntaje, idCliente, idCalibracion) VALUES
+INSERT INTO Calificacion (idCalificacion, fecha, puntaje, idCliente, idCalibracion) VALUES
     (251, '2026-07-31T11:01:00', 4, 22, 184),
     (252, '2026-07-31T12:26:00', 4, 9, 184),
     (253, '2026-07-31T16:00:00', 4, 4, 184),

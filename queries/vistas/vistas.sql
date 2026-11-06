@@ -11,9 +11,9 @@ SELECT c.idCalibracion, c.fechaCalibracion, c.dosis, c.tiempoExtraccion, c.rendi
        COUNT(k.idCalificacion) AS calificaciones,
        SUM(k.puntaje) AS sumaPuntajes,
        CAST(AVG(k.puntaje * 1.0) AS DECIMAL(4,2)) AS puntajePromedio
-FROM calibracion c
-JOIN lote l ON l.idLote = c.idLote
-LEFT JOIN calificacion k ON k.idCalibracion = c.idCalibracion
+FROM Calibracion c
+JOIN Lote l ON l.idLote = c.idLote
+LEFT JOIN Calificacion k ON k.idCalibracion = c.idCalibracion
 GROUP BY c.idCalibracion, c.fechaCalibracion, c.dosis, c.tiempoExtraccion, c.rendimiento,
          c.idBarista, c.idLote, l.idGrano;
 GO
@@ -23,7 +23,7 @@ CREATE OR ALTER VIEW dbo.vwMejorCalibracionPorGrano AS
 SELECT g.idGrano, g.regionCosecha, v.idCalibracion, v.fechaCalibracion, v.dosis, v.tiempoExtraccion,
        v.rendimiento, v.relacionExtraccion, v.calificaciones, v.puntajePromedio
 FROM vwPuntajePorCalibracion v
-JOIN grano g ON g.idGrano = v.idGrano
+JOIN Grano g ON g.idGrano = v.idGrano
 WHERE v.calificaciones >= 3
   AND NOT EXISTS (SELECT 1
                   FROM vwPuntajePorCalibracion otra

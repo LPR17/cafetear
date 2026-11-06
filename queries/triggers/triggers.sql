@@ -7,7 +7,7 @@ GO
 
 -- Control de calificaciones: puntaje de 1 a 5, no anterior a la calibración y una sola por cliente y calibración.
 CREATE OR ALTER TRIGGER dbo.trgCalificacionControl
-ON dbo.calificacion
+ON dbo.Calificacion
 AFTER INSERT, UPDATE
 AS
 BEGIN
@@ -21,7 +21,7 @@ BEGIN
 
     IF EXISTS (SELECT 1
                FROM inserted i
-               JOIN calibracion c ON c.idCalibracion = i.idCalibracion
+               JOIN Calibracion c ON c.idCalibracion = i.idCalibracion
                WHERE i.fecha < c.fechaCalibracion)
     BEGIN
         ROLLBACK TRANSACTION;
@@ -29,7 +29,7 @@ BEGIN
     END;
 
     IF EXISTS (SELECT 1
-               FROM calificacion k
+               FROM Calificacion k
                JOIN inserted i ON i.idCliente = k.idCliente AND i.idCalibracion = k.idCalibracion
                GROUP BY k.idCliente, k.idCalibracion
                HAVING COUNT(*) > 1)
@@ -43,7 +43,7 @@ GO
 -- Asignación de calibración: el cliente no sabe qué calibración le tocó, así que se le asigna la más próxima anterior a su calificación.
 -- Vale para cualquier INSERT, aunque no pase por un procedimiento; si el insert trae un idCalibracion, se reemplaza por el que corresponde.
 CREATE OR ALTER TRIGGER dbo.trgCalificacionAsignarCalibracion
-ON dbo.calificacion
+ON dbo.Calificacion
 INSTEAD OF INSERT
 AS
 BEGIN
@@ -51,14 +51,14 @@ BEGIN
 
     IF EXISTS (SELECT 1
                FROM inserted i
-               WHERE NOT EXISTS (SELECT 1 FROM calibracion c WHERE c.fechaCalibracion <= i.fecha))
+               WHERE NOT EXISTS (SELECT 1 FROM Calibracion c WHERE c.fechaCalibracion <= i.fecha))
         THROW 50023, N'No hay ninguna calibración anterior a esa fecha.', 1;
 
-    INSERT INTO calificacion (idCalificacion, fecha, puntaje, idCliente, idCalibracion)
+    INSERT INTO Calificacion (idCalificacion, fecha, puntaje, idCliente, idCalibracion)
     SELECT i.idCalificacion, i.fecha, i.puntaje, i.idCliente, nearest.idCalibracion
     FROM inserted i
     CROSS APPLY (SELECT TOP 1 c.idCalibracion
-                 FROM calibracion c
+                 FROM Calibracion c
                  WHERE c.fechaCalibracion <= i.fecha
                  ORDER BY c.fechaCalibracion DESC, c.idCalibracion DESC) nearest;
 END

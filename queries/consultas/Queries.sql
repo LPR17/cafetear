@@ -15,13 +15,13 @@ SELECT l.nombre,
 COUNT(c.idCalibracion) AS cantidadCalibraciones, 
 SUM(c.dosis) AS gramosTotalesUsados,
 SUM(p.sumaPuntajes* 1.0)/ SUM(p.cantidadCalificaciones) AS puntajePromedio
-FROM lote l
-JOIN calibracion c ON c.idLote = l.idLote
+FROM Lote l
+JOIN Calibracion c ON c.idLote = l.idLote
 LEFT JOIN(
     SELECT idCalibracion,
     SUM(puntaje) AS sumaPuntajes,
     COUNT(*) AS cantidadCalificaciones
-    FROM calificacion 
+    FROM Calificacion 
     GROUP BY idCalibracion) p ON p.idCalibracion = c.idCalibracion
 GROUP BY l.idLote, l.nombre
 HAVING SUM(p.sumaPuntajes* 1.0)/ SUM(p.cantidadCalificaciones) < 3.5;
@@ -44,7 +44,7 @@ SELECT
     AVG(puntaje)* 1.0 AS calificacionPromedio,
     COUNT(*) AS cantidadCalificaciones
 FROM
-    calificacion
+    Calificacion
 GROUP BY MONTH(fecha), YEAR(fecha)
 ORDER BY MONTH(fecha), YEAR(fecha)
 
@@ -60,11 +60,11 @@ SELECT
     AVG(cf.puntaje * 1.0) AS puntajePromedio,
     COUNT(*) AS cantidadCalificaciones
 FROM
-    grano g
-JOIN lote l ON l.idGrano = g.idGrano
-JOIN proveedor p ON p.idProveedor = l.idProveedor -- El mismo grano puede venir de distintos proveedores
-JOIN calibracion c ON c.idLote = l.idLote --Cada calibración usa un lote
-JOIN calificacion cf ON cf.idCalibracion = c.idCalibracion -- Cada calificacion evalua una calibracion
+    Grano g
+JOIN Lote l ON l.idGrano = g.idGrano
+JOIN Proveedor p ON p.idProveedor = l.idProveedor -- El mismo grano puede venir de distintos proveedores
+JOIN Calibracion c ON c.idLote = l.idLote --Cada calibración usa un lote
+JOIN Calificacion cf ON cf.idCalibracion = c.idCalibracion -- Cada calificacion evalua una calibracion
 
 GROUP BY 
     g.idGrano,
@@ -90,13 +90,13 @@ SELECT
     v.puntajePromedio,
     v.calificaciones
 FROM vwPuntajePorCalibracion v
-JOIN lote l ON l.idLote = v.idLote
-JOIN grano g ON g.idGrano = l.idGrano
-JOIN proveedor p ON p.idProveedor = l.idProveedor
+JOIN Lote l ON l.idLote = v.idLote
+JOIN Grano g ON g.idGrano = l.idGrano
+JOIN Proveedor p ON p.idProveedor = l.idProveedor
 WHERE v.idCalibracion = (
     SELECT TOP 1 v2.idCalibracion
     FROM vwPuntajePorCalibracion v2
-    JOIN lote l2 ON l2.idLote = v2.idLote
+    JOIN Lote l2 ON l2.idLote = v2.idLote
     WHERE l2.idGrano = l.idGrano
       AND l2.idProveedor = l.idProveedor      -- mismo grano y mismo proveedor
       AND v2.calificaciones >= 3
@@ -106,25 +106,25 @@ ORDER BY g.regionCosecha, p.razonSocial;
 
 
 -- proveedor con mejor cafe.
-SELECT TOP 1 p.idProveedor, p.razonSocial, ROUND(AVG(cf.puntaje*1.0),2) AS puntajePromedio FROM proveedor p 
-JOIN lote l ON l.idProveedor = p.idProveedor
-JOIN calibracion cl ON  cl.idLote = l.idLote
-JOIN calificacion cf ON cf.idCalibracion = cl.idCalibracion
+SELECT TOP 1 p.idProveedor, p.razonSocial, ROUND(AVG(cf.puntaje*1.0),2) AS puntajePromedio FROM Proveedor p 
+JOIN Lote l ON l.idProveedor = p.idProveedor
+JOIN Calibracion cl ON  cl.idLote = l.idLote
+JOIN Calificacion cf ON cf.idCalibracion = cl.idCalibracion
 GROUP BY p.idProveedor, p.razonSocial
 HAVING COUNT(cf.idCalificacion) > 5
 ORDER BY AVG(cf.puntaje*1.0) DESC
 
 -- clientes que calificaron alguna vez y no calificaron en los últimos 90 días
 
-SELECT CONCAT(c.nombre, ' ', c.apellido) AS nombreCliente, c.dni FROM cliente c
-JOIN calificacion cal ON cal.idCliente = c.idCliente
+SELECT CONCAT(c.nombre, ' ', c.apellido) AS nombreCliente, c.dni FROM Cliente c
+JOIN Calificacion cal ON cal.idCliente = c.idCliente
 GROUP BY c.idCliente, c.nombre, c.apellido, c.dni
 HAVING COUNT(cal.idCalificacion) > 1 AND
     DATEDIFF(day, MAX(cal.fecha), GETDATE()) > 90
 
 -- Calidad por día de la semana
 
-SELECT DATENAME(WEEKDAY, fecha) AS diaDeLaSemana, AVG(puntaje*1.0) AS calificacionPromedio FROM calificacion
+SELECT DATENAME(WEEKDAY, fecha) AS diaDeLaSemana, AVG(puntaje*1.0) AS calificacionPromedio FROM Calificacion
 GROUP BY DATENAME(WEEKDAY, fecha), DATEPART(WEEKDAY, fecha)
 ORDER BY DATEPART(WEEKDAY, fecha)
 
@@ -141,24 +141,24 @@ SELECT
     (
 
         SELECT AVG(cf2.puntaje * 1.0)
-        FROM calibracion  c2
-        JOIN calificacion cf2 ON cf2.idCalibracion = c2.idCalibracion
+        FROM Calibracion  c2
+        JOIN Calificacion cf2 ON cf2.idCalibracion = c2.idCalibracion
         WHERE c2.idLote = l.idLote
           AND cf2.fecha >= DATEADD(MONTH, DATEDIFF(MONTH, 0, GETDATE()) - 2, 0)
           AND cf2.fecha <  DATEADD(MONTH, DATEDIFF(MONTH, 0, GETDATE()) - 1, 0)
     )                      AS promedioMesAnterior,
     COUNT(*)               AS calificacionesUltimoMes
-FROM lote l
-JOIN calibracion  c  ON c.idLote         = l.idLote
-JOIN calificacion cf ON cf.idCalibracion = c.idCalibracion
+FROM Lote l
+JOIN Calibracion  c  ON c.idLote         = l.idLote
+JOIN Calificacion cf ON cf.idCalibracion = c.idCalibracion
 WHERE cf.fecha >= DATEADD(MONTH, DATEDIFF(MONTH, 0, GETDATE()) - 1, 0)  
   AND cf.fecha <  DATEADD(MONTH, DATEDIFF(MONTH, 0, GETDATE()), 0)   
 GROUP BY l.idLote, l.nombre
 HAVING AVG(cf.puntaje * 1.0) < (
 
     SELECT AVG(cf2.puntaje * 1.0)
-    FROM calibracion  c2
-    JOIN calificacion cf2 ON cf2.idCalibracion = c2.idCalibracion
+    FROM Calibracion  c2
+    JOIN Calificacion cf2 ON cf2.idCalibracion = c2.idCalibracion
     WHERE c2.idLote = l.idLote
       AND cf2.fecha >= DATEADD(MONTH, DATEDIFF(MONTH, 0, GETDATE()) - 2, 0)
       AND cf2.fecha <  DATEADD(MONTH, DATEDIFF(MONTH, 0, GETDATE()) - 1, 0)
@@ -176,10 +176,10 @@ SELECT
     MAX(cf.puntaje) - MIN(cf.puntaje) AS diferencia,
     AVG(cf.puntaje * 1.0)             AS puntajePromedio,
     COUNT(*)                          AS cantidadCalificaciones
-FROM lote l
-JOIN proveedor    p  ON p.idProveedor    = l.idProveedor
-JOIN calibracion  c  ON c.idLote         = l.idLote
-JOIN calificacion cf ON cf.idCalibracion = c.idCalibracion
+FROM Lote l
+JOIN Proveedor    p  ON p.idProveedor    = l.idProveedor
+JOIN Calibracion  c  ON c.idLote         = l.idLote
+JOIN Calificacion cf ON cf.idCalibracion = c.idCalibracion
 GROUP BY l.idLote, l.nombre, p.razonSocial
 HAVING COUNT(*) >= 3
 ORDER BY diferencia DESC;
@@ -193,8 +193,8 @@ ORDER BY diferencia DESC;
     AVG(cf.puntaje * 1.0)            AS puntajePromedio,          -- * 1.0 para no truncar
     COUNT(*)                         AS cantidadCalificaciones,
     COUNT(DISTINCT c.idCalibracion)  AS cantidadCalibraciones     -- cuántas calibraciones usaron ese tiempo
-FROM calibracion c
-JOIN calificacion cf ON cf.idCalibracion = c.idCalibracion       -- cada calificación evalúa una calibración
+FROM Calibracion c
+JOIN Calificacion cf ON cf.idCalibracion = c.idCalibracion       -- cada calificación evalúa una calibración
 GROUP BY c.tiempoExtraccion
 HAVING COUNT(*) >= 5                                              -- evidencia mínima
 ORDER BY puntajePromedio DESC, cantidadCalificaciones DESC;       -- desempate: más opiniones
